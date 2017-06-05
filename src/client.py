@@ -30,7 +30,7 @@ def assert_param(default, *args):
         print("could not find default value for " + args[0])
         exit()
 SERVERADDR = assert_param('127.0.0.1', 'INTEROP_SERVER', 'SERVER')
-SERVERPORT = int(assert_param(80, 'SERVER_PORT', 'PORT'))
+SERVERPORT = int(assert_param(8000, 'SERVER_PORT', 'PORT'))
 SERVERURL = "http://" + SERVERADDR + ":" + str(SERVERPORT)
 GLOBALCOOKIE = None
 CONNECTED = False
@@ -71,7 +71,7 @@ class Target(object):
     user = -1
 
     def __init__(self, type, latitude, longitude, orientation, shape, background_color, alphanumeric,
-                 alphanumeric_color, description):
+                 alphanumeric_color, description, autonomous):
         self.type = type
         self.latitude = latitude
         self.longitude = longitude
@@ -81,6 +81,7 @@ class Target(object):
         self.alphanumeric = alphanumeric
         self.alphanumeric_color = alphanumeric_color
         self.description = description
+        self.autonomous = autonomous
 
         # Orientation Types: N, NE, E, SE, S, SW, W, NW
         # Shape Types: circle, semicircle, quarter_circle, triangle, square, rectangle, trapezoid, pentagon, hexagon,
@@ -108,12 +109,12 @@ def target_callback(data):
     else:
         orientation = "ne"
 
-    target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description)
+    target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
     id = post_target(target)
     imgname = "target_" + str(id) + ".jpeg"
     try:
         # Convert the ROS Image message to OpenCV2
-        cv2_img = CvBridge().imgmsg_to_cv2(data.image, "rgb8")
+        cv2_img = CvBridge().imgmsg_to_cv2(data.image, "bgr8")
     except CvBridgeError, e:
         print("ERROR: saving target "+ str(id) + " image")
     else:
@@ -341,7 +342,7 @@ def post_target(target):
     params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
               'orientation': target.orientation, 'shape': target.shape, 'background_color': target.background_color,
               'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
-              'description': target.description}
+              'description': target.description, 'autonomous':target.autonomous}
 
     json_params = json.dumps(params)
 
