@@ -14,7 +14,7 @@ from time import sleep
 from std_msgs.msg import String
 from std_msgs.msg import Float64
 from sensor_msgs.msg import NavSatFix
-from rosflight_msgs.msg import State
+from rosplane_msgs.msg import State
 from sniper_cam.msg import interopImages
 
 # set these values according to current environment variables
