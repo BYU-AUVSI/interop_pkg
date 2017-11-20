@@ -111,6 +111,7 @@ def target_callback(data):
 
     target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
     id = post_target(target)
+    print("Id recieved: ", id)
     imgname = "target_" + str(id) + ".jpeg"
     try:
         # Convert the ROS Image message to OpenCV2
@@ -347,7 +348,7 @@ def post_target(target):
     json_params = json.dumps(params)
 
     headers = {"Content-Type": "application/json", "Accept": "text/plain", 'Cookie': get_cookie()}
-    response = send_request('POST', '/api/targets', json_params, headers)
+    response = send_request('POST', '/api/odlcs', json_params, headers)
 
     if response.status_code == 201:
         print("Target was submitted successfully!")
@@ -362,7 +363,7 @@ def post_target_image(target_id, image_name):
         encoded_image = image_file.read()
 
     headers = {"Content-Type": "image/jpeg", 'Cookie': get_cookie()}
-    response = send_request('POST', '/api/targets/' + str(target_id) + '/image', encoded_image, headers)
+    response = send_request('POST', '/api/odlcs/' + str(target_id) + '/image', encoded_image, headers)
 
     if response.status_code == 200:
         print("Target image was submitted successfully!")
