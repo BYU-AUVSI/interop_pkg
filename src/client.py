@@ -111,7 +111,6 @@ def target_callback(data):
 
     target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
     id = post_target(target)
-    print("Id recieved: ", id)
     imgname = "target_" + str(id) + ".jpeg"
     try:
         # Convert the ROS Image message to OpenCV2
