@@ -42,7 +42,6 @@ new_long = False
 new_alt = False
 new_hdg = False
 
-cookieLock = threading.Lock()
 connectedLock = threading.Lock()
 
 
@@ -194,20 +193,12 @@ def talker():
 
 def get_cookie():
     global GLOBALCOOKIE
-
-    cookieLock.acquire()
-    cookie = GLOBALCOOKIE
-    cookieLock.release()
-
-    return cookie
+    return GLOBALCOOKIE
 
 
 def set_cookie(cookie):
     global GLOBALCOOKIE
-
-    cookieLock.acquire()
     GLOBALCOOKIE = cookie
-    cookieLock.release()
 
 
 def is_connected():
