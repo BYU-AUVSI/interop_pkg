@@ -6,3 +6,9 @@ This repo is a simple ROS node that does the following:
 * Fetches obstacles and missions from judges and publishes on the `obstacles`, `obstacles/stationary`, `obstacles/moving` and `missions` topics.
 
 Former team members tell us that with the amount of HTTP requests this node is making, it is best to run it on a beefy dedicated machine during competition.
+
+## Running it
+Do the following:
+1. Make sure a RosMaster is running. You can either run `roscore` or run a launchfile that starts this up automatically.
+2. Run `rosrun interop_pkg client.py`.
+3. Run `rostopic echo /missions` to see if missions are coming through. To see anything, the judge's server must be running on the same machine. Instructions to do this can be found [here](http://auvsi-suas-competition-interoperability-system.readthedocs.io/en/latest/).
