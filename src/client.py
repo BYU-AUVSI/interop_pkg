@@ -168,27 +168,29 @@ def update_telemetry(data):
 
 
 def talker():
-    print('Talking')
-    obstacles = rospy.Publisher('obstacles', String, queue_size=10)
-    moving_obstacles = rospy.Publisher('obstacles/moving', String, queue_size=10)
-    stationary_obstacles = rospy.Publisher('obstacles/stationary', String, queue_size=10)
-    missions = rospy.Publisher('missions', String, queue_size=10)
-    rate = rospy.Rate(5)
+    # TODO: New code for GetMission service here
 
-    print "fetching, parsing, and transmitting obstacle and mission data..."
-    while not rospy.is_shutdown():
-        string = get_obstacles()
-        json_obstacles = json.loads(string)
-        rospy.logdebug(string)
-        obstacles.publish(str(string))
-        moving_obstacles.publish(json.dumps(json_obstacles['moving_obstacles']))
-        stationary_obstacles.publish(json.dumps(json_obstacles['stationary_obstacles']))
+    # print('Talking')
+    # obstacles = rospy.Publisher('obstacles', String, queue_size=10)
+    # moving_obstacles = rospy.Publisher('obstacles/moving', String, queue_size=10)
+    # stationary_obstacles = rospy.Publisher('obstacles/stationary', String, queue_size=10)
+    # missions = rospy.Publisher('missions', String, queue_size=10)
+    # rate = rospy.Rate(5)
 
-        string = get_missions()
-        rospy.logdebug(string)
-        missions.publish(str(string))
+    # print "fetching, parsing, and transmitting obstacle and mission data..."
+    # while not rospy.is_shutdown():
+    #     string = get_obstacles()
+    #     json_obstacles = json.loads(string)
+    #     rospy.logdebug(string)
+    #     obstacles.publish(str(string))
+    #     moving_obstacles.publish(json.dumps(json_obstacles['moving_obstacles']))
+    #     stationary_obstacles.publish(json.dumps(json_obstacles['stationary_obstacles']))
 
-        rate.sleep()
+    #     string = get_missions()
+    #     rospy.logdebug(string)
+    #     missions.publish(str(string))
+
+    #     rate.sleep()
 
 
 def get_cookie():
