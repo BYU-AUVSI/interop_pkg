@@ -168,9 +168,74 @@ def update_telemetry(data):
         sendTelemThread.setDaemon(True)
         sendTelemThread.start()
 
+def parse_point(json):
+    point = Point()
+    point.latitude = json['latitude']
+    point.longitude = json['longitude']
+    
+    # Point may optionally have an altitude
+    if 'altitude_msl' in json.keys():
+        point.altitude = json['altitude_msl']
+
+    return point
+
+def parse_ordered_point(json):
+    ordered_point = OrderedPoint()
+    ordered_point.point = parse_point(json)
+    ordered_point.ordinal = json['order']
+    return ordered_point
+
 def get_mission_with_id_handler(req):
     mission_str = get_missions()
+    obstacles_str = get_obstacles()
+    json_mission = json.loads(mission_str)[0]
+    print(json_mission)
+    json_obstacles = json.loads(obstacles_str)
 
+    mission_type = req.mission_type
+    mission = Mission()
+
+    # Set mission type on response
+    mission.mission_type = mission_type
+
+    # Set boundaries (competition boundaries) on response
+    for json_point in json_mission['fly_zones'][0]['boundary_pts']:
+        ordered = parse_ordered_point(json_point)
+        mission.boundaries.append(ordered)
+
+    # Set stationary obstacles on response
+    for json_obstacle in json_obstacles['stationary_obstacles']:
+        point = parse_point(json_obstacle)
+
+        obstacle = StationaryObstacle()
+        obstacle.point = point
+        obstacle.cylinder_height = json_obstacle['cylinder_height']
+        obstacle .cylinder_radius = json_obstacle['cylinder_radius']
+
+        mission.stationary_obstacles.append(obstacle)
+
+    # Set waypoints based on mission type
+    if(mission_type == Mission.MISSION_TYPE_WAYPOINT):
+        # Use "mission_waypoints" from judge-provided mission
+        for mission_waypoint in json_mission['mission_waypoints']:
+            waypoint = parse_ordered_point(mission_waypoint)
+            mission.waypoints.append(waypoint)
+
+    elif(mission_type == Mission.MISSION_TYPE_DROP):
+        # Use "air_drop_pos" from judge-provided mission
+        point = parse_point(json_mission['air_drop_pos'])
+        ordered = OrderedPoint()
+        ordered.point = point
+        ordered.ordinal = 1
+        mission.waypoints.append(ordered)
+
+    elif(mission_type == Mission.MISSION_TYPE_SEARCH):
+        # Use search grid boundaries as waypoints. Caller will generate actual search path within this.
+        for search_grid_point in json_mission['search_grid_points']:
+            point = parse_ordered_point(search_grid_point)
+            mission.waypoints.append(point)
+
+    return mission
 
 def talker():
     print('Talking')
@@ -188,21 +253,14 @@ def talker():
 
         collection = MovingObstacleCollection()
         for json_obstacle in json_moving_obstacles:            
-            point = Point()
-            point.latitude = json_obstacle["latitude"]
-            point.longitude = json_obstacle["longitude"]
-            point.altitude = json_obstacle["altitude_msl"]
-
+            point = parse_point(json_obstacle)
             obstacle = MovingObstacle()
             obstacle.point = point
             obstacle.sphere_radius = json_obstacle["sphere_radius"]
-
             collection.moving_obstacles.append(obstacle)
 
         moving_obstacles.publish(collection)
-
         rate.sleep()
-
 
 def get_cookie():
     global GLOBALCOOKIE
