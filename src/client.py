@@ -185,18 +185,20 @@ def talker():
         string = get_obstacles()
         json_obstacles = json.loads(string)
         json_moving_obstacles = json_obstacles["moving_obstacles"]
-        print(json_moving_obstacles)
+
         collection = MovingObstacleCollection()
-        for json_obstacle in json_moving_obstacles:
-            obstacle = MovingObstacle()
+        for json_obstacle in json_moving_obstacles:            
             point = Point()
             point.latitude = json_obstacle["latitude"]
             point.longitude = json_obstacle["longitude"]
             point.altitude = json_obstacle["altitude_msl"]
+
+            obstacle = MovingObstacle()
             obstacle.point = point
             obstacle.sphere_radius = json_obstacle["sphere_radius"]
+
             collection.moving_obstacles.append(obstacle)
-        print(len(collection.moving_obstacles))
+
         moving_obstacles.publish(collection)
 
         rate.sleep()
