@@ -16,6 +16,8 @@ from std_msgs.msg import Float64
 from sensor_msgs.msg import NavSatFix
 from rosplane_msgs.msg import State
 from sniper_cam.msg import interopImages
+from uav_msgs.srv import GetMissionWithId
+from uav_msgs.msg import *
 
 # set these values according to current environment variables
 # if environment variables don't exist, use default values
@@ -166,31 +168,38 @@ def update_telemetry(data):
         sendTelemThread.setDaemon(True)
         sendTelemThread.start()
 
+def get_mission_with_id_handler(req):
+    mission_str = get_missions()
+
 
 def talker():
-    # TODO: New code for GetMission service here
+    print('Talking')
 
-    # print('Talking')
-    # obstacles = rospy.Publisher('obstacles', String, queue_size=10)
-    # moving_obstacles = rospy.Publisher('obstacles/moving', String, queue_size=10)
-    # stationary_obstacles = rospy.Publisher('obstacles/stationary', String, queue_size=10)
-    # missions = rospy.Publisher('missions', String, queue_size=10)
-    # rate = rospy.Rate(5)
+    # Init the GetMission service handler
+    s = rospy.Service("get_mission_with_id", GetMissionWithId, get_mission_with_id_handler)    
 
-    # print "fetching, parsing, and transmitting obstacle and mission data..."
-    # while not rospy.is_shutdown():
-    #     string = get_obstacles()
-    #     json_obstacles = json.loads(string)
-    #     rospy.logdebug(string)
-    #     obstacles.publish(str(string))
-    #     moving_obstacles.publish(json.dumps(json_obstacles['moving_obstacles']))
-    #     stationary_obstacles.publish(json.dumps(json_obstacles['stationary_obstacles']))
+    moving_obstacles = rospy.Publisher('moving_obstacles', MovingObstacleCollection, queue_size=1)
+    rate = rospy.Rate(1)
 
-    #     string = get_missions()
-    #     rospy.logdebug(string)
-    #     missions.publish(str(string))
+    while not rospy.is_shutdown():
+        string = get_obstacles()
+        json_obstacles = json.loads(string)
+        json_moving_obstacles = json_obstacles["moving_obstacles"]
+        print(json_moving_obstacles)
+        collection = MovingObstacleCollection()
+        for json_obstacle in json_moving_obstacles:
+            obstacle = MovingObstacle()
+            point = Point()
+            point.latitude = json_obstacle["latitude"]
+            point.longitude = json_obstacle["longitude"]
+            point.altitude = json_obstacle["altitude_msl"]
+            obstacle.point = point
+            obstacle.sphere_radius = json_obstacle["sphere_radius"]
+            collection.moving_obstacles.append(obstacle)
+        print(len(collection.moving_obstacles))
+        moving_obstacles.publish(collection)
 
-    #     rate.sleep()
+        rate.sleep()
 
 
 def get_cookie():
