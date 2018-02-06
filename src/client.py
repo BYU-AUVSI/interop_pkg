@@ -31,7 +31,7 @@ def assert_param(default, *args):
     else:
         print("could not find default value for " + args[0])
         exit()
-SERVERADDR = assert_param('127.0.0.1', 'INTEROP_SERVER', 'SERVER')
+SERVERADDR = assert_param('localhost', 'INTEROP_SERVER', 'SERVER')
 SERVERPORT = int(assert_param(8000, 'SERVER_PORT', 'PORT'))
 SERVERURL = "http://" + SERVERADDR + ":" + str(SERVERPORT)
 GLOBALCOOKIE = None
@@ -39,12 +39,19 @@ CONNECTED = False
 RETRY_MAX = 3
 SESSION = requests.Session()
 
+BACKUP_OBJECT_PATH = "~/Desktop/objects/" # Where to write submitted objects when judges go down
+unique_id = 0 # id that we will use to write images when we don't get one assigned from server
+
 new_lat = False
 new_long = False
 new_alt = False
 new_hdg = False
 
 connectedLock = threading.Lock()
+
+# A call to post a target to the judges failed after RETRY_MAX retries
+class PostFailedException(Exception):
+    pass
 
 
 class Telemetry(object):
@@ -111,19 +118,62 @@ def target_callback(data):
         orientation = "ne"
 
     target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
-    id = post_target(target)
-    imgname = "target_" + str(id) + ".jpeg"
+    
+    cv2_img = None
     try:
         # Convert the ROS Image message to OpenCV2
         cv2_img = CvBridge().imgmsg_to_cv2(data.image, "bgr8")
     except CvBridgeError, e:
-        print("ERROR: saving target "+ str(id) + " image")
-    else:
-        # Save your OpenCV2 image as a jpeg
-        cv2.imwrite(imgname, cv2_img)
-    post_target_image(id, imgname)
+        print("ERROR: converting image message to open cv)
+        return
+
+    target_id = None
+    try:
+        target_id = post_target(target) # Throws if posting the target fails after retries
+    except PostFailedException:
+        # Write target / target image to object file
+        target_id = pick_unique_id()
+        write_target_data_to_file(target, target_id)
+        write_target_image_to_file(cv2_img, target_id)
+        return
+
+    # If posting the target data succeeded, now post the target image
+    imgname = "target_" + str(target_id) + ".jpeg"
+    cv2.imwrite(imgname, cv2_img)
+    post_target_image(target_id, imgname)
+
     # delete the image now that we're done using it
     os.remove(imgname)
+
+def write_target_data_to_file(target_data, target_id):
+    make_directory_if_not_exists(BACKUP_OBJECT_PATH)
+
+    name = BACKUP_OBJECT_PATH + target_id + ".json"
+
+    # Write target_data as json to name path
+    params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
+              'orientation': target.orientation, 'shape': target.shape, 'background_color': target.background_color,
+              'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
+              'description': target.description, 'autonomous':target.autonomous}
+
+    json_params = json.dumps(params)
+    with open(name) as f:
+        f.write(json_params)
+
+def write_target_image_to_file(image, target_id):
+    make_directory_if_not_exists(BACKUP_OBJECT_PATH)
+
+    name = BACKUP_OBJECT_PATH + target_id + ".jpg"
+    cv2.imwrite(name, image)
+
+def make_directory_if_not_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+def pick_unique_id():
+    global unique_id
+    unique_id += 1
+    return unique_id
 
 def state_callback(data):
     telem = dict()
@@ -411,13 +461,15 @@ def post_target(target):
     headers = {"Content-Type": "application/json", "Accept": "text/plain", 'Cookie': get_cookie()}
     response = send_request('POST', '/api/odlcs', json_params, headers)
 
-    if response.status_code == 201:
-        print("Target was submitted successfully!")
-        return response.json()['id']
-    else:
-        print("Something went wrong with posting a target!")
-        return -1
-
+    for retry in range(RETRY_MAX):
+        if response.status_code == 201:
+            print("Target was submitted successfully on try {}!".format(retry + 1))
+            return response.json()['id']
+        else:
+            print("Something went wrong with posting a target, trying again")
+    
+    print("Target failed after {} tries", RETRY_MAX)
+    throw PostFailedException()
 
 def post_target_image(target_id, image_name):
     with open(image_name, "rb") as image_file:
@@ -426,12 +478,13 @@ def post_target_image(target_id, image_name):
     headers = {"Content-Type": "image/jpeg", 'Cookie': get_cookie()}
     response = send_request('POST', '/api/odlcs/' + str(target_id) + '/image', encoded_image, headers)
 
-    if response.status_code == 200:
-        print("Target image was submitted successfully!")
-    else:
-        print("Something went wrong with posting an image!")
-        print(response.text)
-
+    for retry in range(RETRY_MAX):
+        if response.status_code == 200:
+            print("Target image was submitted successfully on try {}!".format(retry + 1))
+            return
+        else:
+            print("Something went wrong with posting an image, trying again")
+    write_target_image_to_object_file(target_id, image_name)
 
 if __name__ == '__main__':
     rospy.init_node('interop_client', anonymous=True)
