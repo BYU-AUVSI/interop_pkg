@@ -39,7 +39,7 @@ CONNECTED = False
 RETRY_MAX = 3
 SESSION = requests.Session()
 
-BACKUP_OBJECT_PATH = "~/Desktop/objects/" # Where to write submitted objects when judges go down
+BACKUP_OBJECT_PATH = os.path.expanduser("~/Desktop/objects/") # Where to write submitted objects when judges go down
 unique_id = 0 # id that we will use to write images when we don't get one assigned from server
 
 new_lat = False
@@ -124,7 +124,7 @@ def target_callback(data):
         # Convert the ROS Image message to OpenCV2
         cv2_img = CvBridge().imgmsg_to_cv2(data.image, "bgr8")
     except CvBridgeError, e:
-        print("ERROR: converting image message to open cv)
+        print("ERROR: converting image message to open cv")
         return
 
     target_id = None
@@ -133,37 +133,33 @@ def target_callback(data):
     except PostFailedException:
         # Write target / target image to object file
         target_id = pick_unique_id()
+        print("Writing target data and image to file with generated id: {}".format(target_id))
         write_target_data_to_file(target, target_id)
         write_target_image_to_file(cv2_img, target_id)
         return
 
     # If posting the target data succeeded, now post the target image
-    imgname = "target_" + str(target_id) + ".jpeg"
-    cv2.imwrite(imgname, cv2_img)
-    post_target_image(target_id, imgname)
-
-    # delete the image now that we're done using it
-    os.remove(imgname)
+    post_target_image(target_id, cv2_img)
 
 def write_target_data_to_file(target_data, target_id):
     make_directory_if_not_exists(BACKUP_OBJECT_PATH)
 
-    name = BACKUP_OBJECT_PATH + target_id + ".json"
+    name = BACKUP_OBJECT_PATH + str(target_id) + ".json"
 
     # Write target_data as json to name path
-    params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
-              'orientation': target.orientation, 'shape': target.shape, 'background_color': target.background_color,
-              'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
-              'description': target.description, 'autonomous':target.autonomous}
+    params = {'type': target_data.type, 'latitude': target_data.latitude, 'longitude': target_data.longitude,
+              'orientation': target_data.orientation, 'shape': target_data.shape, 'background_color': target_data.background_color,
+              'alphanumeric': target_data.alphanumeric, 'alphanumeric_color': target_data.alphanumeric_color,
+              'description': target_data.description, 'autonomous':target_data.autonomous}
 
     json_params = json.dumps(params)
-    with open(name) as f:
+    with open(name, "w") as f:
         f.write(json_params)
 
 def write_target_image_to_file(image, target_id):
     make_directory_if_not_exists(BACKUP_OBJECT_PATH)
 
-    name = BACKUP_OBJECT_PATH + target_id + ".jpg"
+    name = BACKUP_OBJECT_PATH + str(target_id) + ".jpg"
     cv2.imwrite(name, image)
 
 def make_directory_if_not_exists(directory):
@@ -450,7 +446,6 @@ def post_telemetry():
 
 
 def post_target(target):
-
     params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
               'orientation': target.orientation, 'shape': target.shape, 'background_color': target.background_color,
               'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
@@ -468,12 +463,11 @@ def post_target(target):
         else:
             print("Something went wrong with posting a target, trying again")
     
-    print("Target failed after {} tries", RETRY_MAX)
-    throw PostFailedException()
+    print("Target failed after {} tries".format(RETRY_MAX))
+    raise PostFailedException()
 
-def post_target_image(target_id, image_name):
-    with open(image_name, "rb") as image_file:
-        encoded_image = image_file.read()
+def post_target_image(target_id, image):
+    encoded_image = cv2.imencode(".jpg", image)[1].tostring()
 
     headers = {"Content-Type": "image/jpeg", 'Cookie': get_cookie()}
     response = send_request('POST', '/api/odlcs/' + str(target_id) + '/image', encoded_image, headers)
@@ -484,7 +478,8 @@ def post_target_image(target_id, image_name):
             return
         else:
             print("Something went wrong with posting an image, trying again")
-    write_target_image_to_object_file(target_id, image_name)
+    print("Writing target image to file with id: {}".format(target_id))
+    write_target_image_to_file(image, target_id)
 
 if __name__ == '__main__':
     rospy.init_node('interop_client', anonymous=True)
