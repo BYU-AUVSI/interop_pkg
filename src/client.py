@@ -239,7 +239,7 @@ def get_mission_with_id_handler(req):
     json_obstacles = json.loads(obstacles_str)
 
     mission_type = req.mission_type
-    mission = Mission()
+    mission = JudgeMission()
 
     # Set mission type on response
     mission.mission_type = mission_type
