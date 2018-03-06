@@ -183,7 +183,7 @@ def state_callback(data):
 
 def listener():
     print('Listening')
-    rospy.Subscriber("/gps_state", State, state_callback) # state info from ros_plane
+    rospy.Subscriber("/state", State, state_callback) # state info from ros_plane
     rospy.Subscriber("/plans", interopImages, target_callback) # images + metadata from imaging gui
     #  processing
     rospy.spin()
