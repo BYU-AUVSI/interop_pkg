@@ -175,7 +175,7 @@ def state_callback(data):
     telem = dict()
     telem['lat'] = data.position[0]
     telem['long'] = data.position[1]
-    telem['alt'] = data.position[2]
+    telem['alt'] = metersToFeet(data.position[2])
     telem['hdg'] = math.degrees(data.chi % (2 * math.pi))
     update_telemetry(telem)
     # rospy.logdebug(rospy.get_caller_id() + "GPS Latitude: %s, Longitude: %s, Altitude: %s, Heading %s", telem["lat"], telem["long"], telem["alt"], telem['hdg'])
@@ -221,7 +221,7 @@ def parse_point(json):
     
     # Point may optionally have an altitude
     if 'altitude_msl' in json.keys():
-        point.altitude = json['altitude_msl']
+        point.altitude = feetToMeters(json['altitude_msl'])
 
     return point
 
@@ -263,8 +263,8 @@ def get_mission_with_id_handler(req):
 
         obstacle = StationaryObstacle()
         obstacle.point = point
-        obstacle.cylinder_height = json_obstacle['cylinder_height']
-        obstacle .cylinder_radius = json_obstacle['cylinder_radius']
+        obstacle.cylinder_height = feetToMeters(json_obstacle['cylinder_height'])
+        obstacle.cylinder_radius = feetToMeters(json_obstacle['cylinder_radius'])
 
         mission.stationary_obstacles.append(obstacle)
 
@@ -310,7 +310,7 @@ def talker():
             point = parse_point(json_obstacle)
             obstacle = MovingObstacle()
             obstacle.point = point
-            obstacle.sphere_radius = json_obstacle["sphere_radius"]
+            obstacle.sphere_radius = feetToMeters(json_obstacle["sphere_radius"])
             collection.moving_obstacles.append(obstacle)
 
         moving_obstacles.publish(collection)
@@ -488,6 +488,12 @@ def post_target_image(target_id, image):
             print("Something went wrong with posting an image, trying again")
     print("Writing target image to file with id: {}".format(target_id))
     write_target_image_to_file(image, target_id)
+
+def feetToMeters(feet):
+    return feet * 0.3048
+
+def metersToFeet(meters):
+    return meters * 3.28084
 
 if __name__ == '__main__':
     rospy.init_node('interop_client', anonymous=True)
