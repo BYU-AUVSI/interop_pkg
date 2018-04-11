@@ -234,7 +234,15 @@ def parse_ordered_point(json):
 def get_mission_with_id_handler(req):
     mission_str = get_missions()
     obstacles_str = get_obstacles()
-    json_mission = json.loads(mission_str)[0]
+    json_missions = json.loads(mission_str)
+
+    # Handle multiple missions for testing purposes
+    # Just take the first mission that is active
+    json_mission = None
+    for mission in json_missions:
+        if mission["active"]:
+            json_mission = mission
+
     print(json_mission)
     json_obstacles = json.loads(obstacles_str)
 
