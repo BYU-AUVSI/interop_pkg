@@ -278,6 +278,7 @@ def get_mission_with_id_handler(req):
     elif(mission_type == Mission.MISSION_TYPE_DROP):
         # Use "air_drop_pos" from judge-provided mission
         point = parse_point(json_mission['air_drop_pos'])
+        point.altitude = feetToMeters(json_mission['fly_zones'][0]['altitude_msl_min']) # So we know later a baseline of how low we can fly
         ordered = OrderedPoint()
         ordered.point = point
         ordered.ordinal = 1
