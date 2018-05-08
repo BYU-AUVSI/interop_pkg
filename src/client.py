@@ -118,7 +118,7 @@ def target_callback(data):
         orientation = "ne"
 
     target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
-    
+
     cv2_img = None
     try:
         # Convert the ROS Image message to OpenCV2
@@ -218,7 +218,7 @@ def parse_point(json):
     point = Point()
     point.latitude = json['latitude']
     point.longitude = json['longitude']
-    
+
     # Point may optionally have an altitude
     if 'altitude_msl' in json.keys():
         point.altitude = feetToMeters(json['altitude_msl'])
@@ -269,13 +269,13 @@ def get_mission_with_id_handler(req):
         mission.stationary_obstacles.append(obstacle)
 
     # Set waypoints based on mission type
-    if(mission_type == Mission.MISSION_TYPE_WAYPOINT):
+    if(mission_type == mission.MISSION_TYPE_WAYPOINT):
         # Use "mission_waypoints" from judge-provided mission
         for mission_waypoint in json_mission['mission_waypoints']:
             waypoint = parse_ordered_point(mission_waypoint)
             mission.waypoints.append(waypoint)
 
-    elif(mission_type == Mission.MISSION_TYPE_DROP):
+    elif(mission_type == mission.MISSION_TYPE_DROP):
         # Use "air_drop_pos" from judge-provided mission
         point = parse_point(json_mission['air_drop_pos'])
         point.altitude = feetToMeters(json_mission['fly_zones'][0]['altitude_msl_min']) # So we know later a baseline of how low we can fly
@@ -284,7 +284,7 @@ def get_mission_with_id_handler(req):
         ordered.ordinal = 1
         mission.waypoints.append(ordered)
 
-    elif(mission_type == Mission.MISSION_TYPE_SEARCH):
+    elif(mission_type == mission.MISSION_TYPE_SEARCH):
         # Use search grid boundaries as waypoints. Caller will generate actual search path within this.
         for search_grid_point in json_mission['search_grid_points']:
             point = parse_ordered_point(search_grid_point)
@@ -296,7 +296,7 @@ def talker():
     print('Talking')
 
     # Init the GetMission service handler
-    s = rospy.Service("get_mission_with_id", GetMissionWithId, get_mission_with_id_handler)    
+    s = rospy.Service("get_mission_with_id", GetMissionWithId, get_mission_with_id_handler)
 
     moving_obstacles = rospy.Publisher('moving_obstacles', MovingObstacleCollection, queue_size=1)
     rate = rospy.Rate(1)
@@ -307,7 +307,7 @@ def talker():
         json_moving_obstacles = json_obstacles["moving_obstacles"]
 
         collection = MovingObstacleCollection()
-        for json_obstacle in json_moving_obstacles:            
+        for json_obstacle in json_moving_obstacles:
             point = parse_point(json_obstacle)
             obstacle = MovingObstacle()
             obstacle.point = point
@@ -471,7 +471,7 @@ def post_target(target):
             return response.json()['id']
         else:
             print("Something went wrong with posting a target, trying again")
-    
+
     print("Target failed after {} tries".format(RETRY_MAX))
     raise PostFailedException()
 
