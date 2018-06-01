@@ -49,6 +49,10 @@ new_hdg = False
 
 connectedLock = threading.Lock()
 
+# For NED to LatLon
+HOME = [38.144692, -76.428007]
+R_EARTH = 6370027
+
 # A call to post a target to the judges failed after RETRY_MAX retries
 class PostFailedException(Exception):
     pass
@@ -173,13 +177,20 @@ def pick_unique_id():
 
 def state_callback(data):
     telem = dict()
-    telem['lat'] = data.position[0]
-    telem['long'] = data.position[1]
-    telem['alt'] = metersToFeet(data.position[2])
+
+    # These come in as NED, so convert to lat / lon
+    latlon = nedToLatLon((data.position[0], data.position[1]))
+
+    telem['lat'] = latlon[0]
+    telem['long'] = latlon[1]
+    telem['alt'] = metersToFeet(-data.position[2]) # data.position[2] is negative above ground
     telem['hdg'] = math.degrees(data.chi % (2 * math.pi))
     update_telemetry(telem)
-    # rospy.logdebug(rospy.get_caller_id() + "GPS Latitude: %s, Longitude: %s, Altitude: %s, Heading %s", telem["lat"], telem["long"], telem["alt"], telem['hdg'])
 
+def nedToLatLon(ned):
+    lat = HOME[0] + math.degrees(math.asin(ned[0]/R_EARTH))
+    lon = HOME[1] + math.degrees(math.asin(ned[1]/(math.cos(math.radians(HOME[0]))*R_EARTH)))
+    return (lat, lon)
 
 def listener():
     print('Listening')
@@ -269,13 +280,13 @@ def get_mission_with_id_handler(req):
         mission.stationary_obstacles.append(obstacle)
 
     # Set waypoints based on mission type
-    if(mission_type == Mission.MISSION_TYPE_WAYPOINT):
+    if(mission_type == JudgeMission.MISSION_TYPE_WAYPOINT):
         # Use "mission_waypoints" from judge-provided mission
         for mission_waypoint in json_mission['mission_waypoints']:
             waypoint = parse_ordered_point(mission_waypoint)
             mission.waypoints.append(waypoint)
 
-    elif(mission_type == Mission.MISSION_TYPE_DROP):
+    elif(mission_type == JudgeMission.MISSION_TYPE_DROP):
         # Use "air_drop_pos" from judge-provided mission
         point = parse_point(json_mission['air_drop_pos'])
         point.altitude = feetToMeters(json_mission['fly_zones'][0]['altitude_msl_min']) # So we know later a baseline of how low we can fly
@@ -284,11 +295,27 @@ def get_mission_with_id_handler(req):
         ordered.ordinal = 1
         mission.waypoints.append(ordered)
 
-    elif(mission_type == Mission.MISSION_TYPE_SEARCH):
+    elif(mission_type == JudgeMission.MISSION_TYPE_SEARCH):
         # Use search grid boundaries as waypoints. Caller will generate actual search path within this.
         for search_grid_point in json_mission['search_grid_points']:
             point = parse_ordered_point(search_grid_point)
             mission.waypoints.append(point)
+
+    elif(mission_type == JudgeMission.MISSION_TYPE_OFFAXIS):
+        # Get off axis position
+        point = parse_point(json_mission['off_axis_odlc_pos'])
+        ordered = OrderedPoint()
+        ordered.point = point
+        ordered.ordinal = 1
+        mission.waypoints.append(ordered)
+
+    elif(mission_type == JudgeMission.MISSION_TYPE_EMERGENT):
+        # Get emergent position
+        point = parse_point(json_mission["emergent_last_known_pos"])
+        ordered = OrderedPoint()
+        ordered.point = point
+        ordered.ordinal = 1
+        mission.waypoints.append(ordered)
 
     return mission
 
