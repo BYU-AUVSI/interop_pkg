@@ -317,7 +317,7 @@ def get_mission_with_id_handler(req):
         ordered.ordinal = 1
         mission.waypoints.append(ordered)
 
-    elif(mission_type == Judge.MISSION_TYPE_EMERGENT):
+    elif(mission_type == JudgeMission.MISSION_TYPE_EMERGENT):
         # Get emergent position
         point = parse_point(json_mission["emergent_last_known_pos"])
         ordered = OrderedPoint()
