@@ -48,6 +48,7 @@ new_alt = False
 new_hdg = False
 
 connectedLock = threading.Lock()
+telemetryLock = threading.Lock()
 
 # For NED to LatLon
 HOME = [38.144692, -76.428007]
@@ -207,6 +208,8 @@ def update_telemetry(data):
     global new_alt
     global new_hdg
 
+    # Take a lock before accessing these vars (shared with other threads)
+    telemetryLock.acquire()
     if 'lat' in data:
         telemetry.latitude = data['lat']
         new_lat = True
@@ -220,7 +223,10 @@ def update_telemetry(data):
         telemetry.heading = data['hdg']
         new_hdg = True
 
-    if new_lat and new_long and new_alt and new_hdg:
+    newData = new_lat and new_long and new_alt and new_hdg
+    telemetryLock.release()
+
+    if newData:
         sendTelemThread = threading.Thread(target=send_telemetry)
         sendTelemThread.setDaemon(True)
         sendTelemThread.start()
@@ -415,6 +421,7 @@ def send_request(method, resource, params, headers):
         if method == 'GET':
             response = SESSION.get(SERVERURL+resource, headers=headers)
         elif method == 'POST':
+            #print("Posting {}, {}, {}".format(SERVERURL + resource, headers, params))
             response = SESSION.post(SERVERURL+resource, headers=headers, data=params)
         elif method == 'PUT':
             response = SESSION.put(SERVERURL+resource, headers=headers, data=params)
@@ -467,11 +474,13 @@ def send_telemetry():
     global new_hdg
 
     # telemetry.printTelemetry()
-    post_telemetry()
+    telemetryLock.acquire()
     new_lat = False
     new_long = False
     new_alt = False
     new_hdg = False
+    post_telemetry()
+    telemetryLock.release()
 
 
 def post_telemetry():
