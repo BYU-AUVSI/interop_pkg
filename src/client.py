@@ -42,13 +42,7 @@ SESSION = requests.Session()
 BACKUP_OBJECT_PATH = os.path.expanduser("~/Desktop/objects/") # Where to write submitted objects when judges go down
 unique_id = 0 # id that we will use to write images when we don't get one assigned from server
 
-new_lat = False
-new_long = False
-new_alt = False
-new_hdg = False
-
 connectedLock = threading.Lock()
-telemetryLock = threading.Lock()
 
 # For NED to LatLon
 HOME = [38.144692, -76.428007]
@@ -74,10 +68,6 @@ class Telemetry(object):
 
     # use __getattr__('heading') or other attributes for the data
     # use __set__('heading', 90) or other attributes to set data
-
-# global telemetry object
-telemetry = Telemetry(0, 0, 0, 0)
-
 
 class Target(object):
     id = -1
@@ -177,16 +167,19 @@ def pick_unique_id():
     return unique_id
 
 def state_callback(data):
-    telem = dict()
-
     # These come in as NED, so convert to lat / lon
     latlon = nedToLatLon((data.position[0], data.position[1]))
 
-    telem['lat'] = latlon[0]
-    telem['long'] = latlon[1]
-    telem['alt'] = metersToFeet(-data.position[2]) # data.position[2] is negative above ground
-    telem['hdg'] = math.degrees(data.chi % (2 * math.pi))
-    update_telemetry(telem)
+    lat = latlon[0]
+    lon = latlon[1]
+    alt = metersToFeet(-data.position[2]) # data.position[2] is negative above ground
+    hdg = math.degrees(data.chi % (2 * math.pi))
+
+    telemetry = Telemetry(lat, lon, alt, hdg)
+
+    sendTelemThread = threading.Thread(target=post_telemetry, args=(telemetry,))
+    sendTelemThread.setDaemon(True)
+    sendTelemThread.start()
 
 def nedToLatLon(ned):
     lat = HOME[0] + math.degrees(math.asin(ned[0]/R_EARTH))
@@ -199,37 +192,6 @@ def listener():
     rospy.Subscriber("/plans", interopImages, target_callback) # images + metadata from imaging gui
     #  processing
     rospy.spin()
-
-
-def update_telemetry(data):
-    global telemetry
-    global new_lat
-    global new_long
-    global new_alt
-    global new_hdg
-
-    # Take a lock before accessing these vars (shared with other threads)
-    telemetryLock.acquire()
-    if 'lat' in data:
-        telemetry.latitude = data['lat']
-        new_lat = True
-    if 'long' in data:
-        telemetry.longitude = data['long']
-        new_long = True
-    if 'alt' in data:
-        telemetry.altitude = data['alt']
-        new_alt = True
-    if 'hdg' in data:
-        telemetry.heading = data['hdg']
-        new_hdg = True
-
-    newData = new_lat and new_long and new_alt and new_hdg
-    telemetryLock.release()
-
-    if newData:
-        sendTelemThread = threading.Thread(target=send_telemetry)
-        sendTelemThread.setDaemon(True)
-        sendTelemThread.start()
 
 def parse_point(json):
     point = Point()
@@ -421,7 +383,7 @@ def send_request(method, resource, params, headers):
         if method == 'GET':
             response = SESSION.get(SERVERURL+resource, headers=headers)
         elif method == 'POST':
-            #print("Posting {}, {}, {}".format(SERVERURL + resource, headers, params))
+            print("Posting {}, {}, {}".format(SERVERURL + resource, headers, params))
             response = SESSION.post(SERVERURL+resource, headers=headers, data=params)
         elif method == 'PUT':
             response = SESSION.put(SERVERURL+resource, headers=headers, data=params)
@@ -465,26 +427,7 @@ def get_missions():
     response = send_request('GET', '/api/missions', None, headers={'Cookie': get_cookie()})
     return response.text
 
-
-def send_telemetry():
-    global telemetry
-    global new_lat
-    global new_long
-    global new_alt
-    global new_hdg
-
-    # telemetry.printTelemetry()
-    telemetryLock.acquire()
-    new_lat = False
-    new_long = False
-    new_alt = False
-    new_hdg = False
-    post_telemetry()
-    telemetryLock.release()
-
-
-def post_telemetry():
-    global telemetry
+def post_telemetry(telemetry):
     params = urllib.urlencode(
                 {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude_msl': telemetry.altitude,
                     'uas_heading': telemetry.heading})
