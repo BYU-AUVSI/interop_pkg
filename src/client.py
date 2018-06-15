@@ -384,6 +384,7 @@ def send_request(method, resource, params, headers):
             response = SESSION.get(SERVERURL+resource, headers=headers)
         elif method == 'POST':
             response = SESSION.post(SERVERURL+resource, headers=headers, data=params)
+            print("Successfully posted: {}, {}, {}".format(resource,params,headers))
         elif method == 'PUT':
             response = SESSION.put(SERVERURL+resource, headers=headers, data=params)
 
@@ -446,7 +447,7 @@ def post_target(target):
 
     for retry in range(RETRY_MAX):
         if response.status_code == 201:
-            print("Target was submitted successfully on try {}!".format(retry + 1))
+            ROS_WARN("Target was submitted successfully on try {}!".format(retry + 1))
             return response.json()['id']
         else:
             print("Something went wrong with posting a target, trying again")
@@ -462,7 +463,7 @@ def post_target_image(target_id, image):
 
     for retry in range(RETRY_MAX):
         if response.status_code == 200:
-            print("Target image was submitted successfully on try {}!".format(retry + 1))
+            ROS_WARN("Target image was submitted successfully on try {}!".format(retry + 1))
             return
         else:
             print("Something went wrong with posting an image, trying again")
