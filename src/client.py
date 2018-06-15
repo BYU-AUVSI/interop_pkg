@@ -31,8 +31,8 @@ def assert_param(default, *args):
     else:
         print("could not find default value for " + args[0])
         exit()
-SERVERADDR = assert_param('localhost', 'INTEROP_SERVER', 'SERVER')
-SERVERPORT = int(assert_param(8000, 'SERVER_PORT', 'PORT'))
+SERVERADDR = assert_param('10.10.130.10', 'INTEROP_SERVER', 'SERVER')
+SERVERPORT = int(assert_param(80, 'SERVER_PORT', 'PORT'))
 SERVERURL = "http://" + SERVERADDR + ":" + str(SERVERPORT)
 GLOBALCOOKIE = None
 CONNECTED = False
@@ -343,7 +343,7 @@ def set_is_connected(connected):
 
 
 def connect():
-    params = urllib.urlencode({'username': 'testuser', 'password': 'testpass'})
+    params = urllib.urlencode({'username': 'brigham', 'password': '2103156525'})
     retry_count = 0
     while not is_connected() and retry_count < RETRY_MAX:
         retry_count+=1
