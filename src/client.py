@@ -343,14 +343,14 @@ def set_is_connected(connected):
 
 
 def connect():
-    params = urllib.urlencode({'username': 'testuser', 'password': 'testpass'})
+    params = {"username": "testuser", "password": "testpass"}
     retry_count = 0
     while not is_connected() and retry_count < RETRY_MAX:
         retry_count+=1
 
         try:
             # print('Logging in')
-            headers = {"Content-Type": "application/json", "Accept": "text/plain"}
+            headers = {"Content-Type": "application/json"}
             response = SESSION.post(SERVERURL+'/api/login', headers=headers, data=params)
 
             if response.status_code == 200:
