@@ -350,7 +350,7 @@ def connect():
 
         try:
             # print('Logging in')
-            headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
+            headers = {"Content-Type": "application/json", "Accept": "text/plain"}
             response = SESSION.post(SERVERURL+'/api/login', headers=headers, data=params)
 
             if response.status_code == 200:
