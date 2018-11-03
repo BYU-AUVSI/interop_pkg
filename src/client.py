@@ -295,24 +295,11 @@ def talker():
     # Init the GetMission service handler
     s = rospy.Service("get_mission_with_id", GetMissionWithId, get_mission_with_id_handler)
 
-    moving_obstacles = rospy.Publisher('moving_obstacles', MovingObstacleCollection, queue_size=1)
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(1) # not sure if we need this. i think this is from when we tried to publish moving obstacle info every second
 
-    while not rospy.is_shutdown():
-        string = get_obstacles()
-        json_obstacles = json.loads(string)
-        json_moving_obstacles = json_obstacles["moving_obstacles"]
-
-        collection = MovingObstacleCollection()
-        for json_obstacle in json_moving_obstacles:
-            point = parse_point(json_obstacle)
-            obstacle = MovingObstacle()
-            obstacle.point = point
-            obstacle.sphere_radius = feetToMeters(json_obstacle["sphere_radius"])
-            collection.moving_obstacles.append(obstacle)
-
-        moving_obstacles.publish(collection)
-        rate.sleep()
+    string = get_obstacles()
+    json_obstacles = json.loads(string)
+    print("Got obstacles!")
 
 def get_cookie():
     global GLOBALCOOKIE
@@ -343,15 +330,15 @@ def set_is_connected(connected):
 
 
 def connect():
-    params = urllib.urlencode({'username': 'testuser', 'password': 'testpass'})
+    params = {"username": "testuser", "password": "testpass"}
     retry_count = 0
     while not is_connected() and retry_count < RETRY_MAX:
         retry_count+=1
 
         try:
             # print('Logging in')
-            headers = {"Content-Type": "application/json", "Accept": "text/plain"}
-            response = SESSION.post(SERVERURL+'/api/login', headers=headers, data=params)
+            headers = {"Content-Type": "application/json"}
+            response = SESSION.post(SERVERURL + '/api/login', headers=headers, json=params)
 
             if response.status_code == 200:
                 set_cookie(response.headers.get('Set-Cookie'))
@@ -360,6 +347,7 @@ def connect():
                 print('Successfully Logged In')
                 set_is_connected(True)
             else:
+		print("response code::{}".format(response.status_code))
                 raise Exception('Error Logging In')
         except Exception as e:
             print('Connection Error: ' + str(e))
@@ -484,3 +472,4 @@ if __name__ == '__main__':
     listenerThread.setDaemon(True)
     listenerThread.start()
     talker()
+    rospy.spin()
