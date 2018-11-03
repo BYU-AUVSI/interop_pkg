@@ -351,7 +351,7 @@ def connect():
         try:
             # print('Logging in')
             headers = {"Content-Type": "application/json"}
-            response = SESSION.post(SERVERURL+'/api/login', headers=headers, data=params)
+            response = SESSION.post(SERVERURL + '/api/login', headers=headers, json=params)
 
             if response.status_code == 200:
                 set_cookie(response.headers.get('Set-Cookie'))
@@ -360,6 +360,7 @@ def connect():
                 print('Successfully Logged In')
                 set_is_connected(True)
             else:
+		print("response code::{}".format(response.status_code))
                 raise Exception('Error Logging In')
         except Exception as e:
             print('Connection Error: ' + str(e))
