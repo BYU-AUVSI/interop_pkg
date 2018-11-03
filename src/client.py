@@ -472,3 +472,4 @@ if __name__ == '__main__':
     listenerThread.setDaemon(True)
     listenerThread.start()
     talker()
+    rospy.spin()
