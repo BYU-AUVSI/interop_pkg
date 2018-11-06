@@ -343,7 +343,7 @@ def set_is_connected(connected):
 
 
 def connect():
-    params = urllib.urlencode({'username': 'testuser', 'password': 'testpass'})
+    params = urllib.urlencode({'username': 'testadmin', 'password': 'testpass'}) # testuser
     retry_count = 0
     while not is_connected() and retry_count < RETRY_MAX:
         retry_count+=1
@@ -351,8 +351,8 @@ def connect():
         try:
             # print('Logging in')
             headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
-            response = SESSION.post(SERVERURL+'/api/login', headers=headers, data=params)
-
+            response = SESSION.post(SERVERURL+'/admin/login', headers=headers, data=params)
+            # /api/login
             if response.status_code == 200:
                 set_cookie(response.headers.get('Set-Cookie'))
                 # print('Cookie:', get_cookie())
