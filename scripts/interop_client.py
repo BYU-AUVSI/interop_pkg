@@ -36,7 +36,7 @@ SERVERPORT = int(assert_param(8000, 'SERVER_PORT', 'PORT'))
 SERVERURL = "http://" + SERVERADDR + ":" + str(SERVERPORT)
 GLOBALCOOKIE = None
 CONNECTED = False
-RETRY_MAX = 10
+RETRY_MAX = 20000
 SESSION = requests.Session()
 
 BACKUP_OBJECT_PATH = os.path.expanduser("~/Desktop/objects/") # Where to write submitted objects when judges go down
@@ -351,7 +351,7 @@ def connect():
 		print("response code::{}".format(response.status_code))
                 raise Exception('Error Logging In')
         except Exception as e:
-            print('Connection Error: ' + str(e))
+            # print('Connection Error: ' + str(e))
             set_is_connected(False)
 
     if retry_count >= RETRY_MAX:
@@ -467,7 +467,7 @@ def metersToFeet(meters):
 
 if __name__ == '__main__':
     rospy.init_node('interop_client', anonymous=True)
-    rospy.sleep(4.0)
+    # rospy.sleep(4.0)
     connect()
 
     listenerThread = threading.Thread(target=listener)

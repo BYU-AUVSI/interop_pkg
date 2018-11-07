@@ -1,0 +1,4 @@
+SERVER_IP: localhost
+SERVER_PORT: 8000
+MAX_RETRIES: 20000 # has to be sufficiently large to allow for the server
+                   # to start before the client gives up logging in

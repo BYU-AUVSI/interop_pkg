@@ -1,0 +1,15 @@
+<launch>
+
+  <!-- <arg name="port_number" default="8000"/>
+  <arg name="server_ip" default="localhost"/> -->
+
+  <!-- Launch the server -->
+  <include file="$(find interop_pkg)/launch/server.launch"/>
+
+  <!-- Launch the client -->
+  <include file="$(find interop_pkg)/launch/client.launch">
+    <!-- <arg name="port_number" value="$(arg port_number)"/>
+    <arg name="server_ip" value="$(arg server_ip)"/> -->
+  </include>
+
+</launch>

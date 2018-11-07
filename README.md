@@ -1,4 +1,9 @@
 # interop_pkg
+ROS wrappers for interacting with the AUVSI interop server using a ROS network.
+
+## Installation and Setup
+
+
 ## Introduction
 This repo is a simple ROS node that does the following:
 * Logs in to judge's server (as specified in environment variables, set by `params.sh`).
