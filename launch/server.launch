@@ -1,0 +1,6 @@
+<launch>
+
+  <!-- Handle the docker for the interop server -->
+  <node name="server_spawner" pkg="interop_pkg" type="spawn_server.py" output="screen"/>
+
+</launch>
