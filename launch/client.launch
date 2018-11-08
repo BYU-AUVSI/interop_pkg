@@ -6,7 +6,7 @@
   <!-- Interop client node -->
   <!-- <node name="client_spawner" pkg="interop_pkg" type="spawn_client.py" output="screen"/> -->
   <!-- <node name="interop_client" pkg="interop_pkg" type="client.py" output="screen"/> -->
-  <node name="interop_client" pkg="interop_pkg" type="interop_client.py" output="screen">
+  <node name="interop_client" pkg="interop_pkg" type="InteropClient.py" output="screen">
     <rosparam file="$(find interop_pkg)/param/client_params.yaml"/>
   </node>
 
