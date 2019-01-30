@@ -8,7 +8,7 @@ if __name__ == "__main__":
         disable_signals=True)
 
     os.system('docker start interop-server')
-    print 'SERVER RUNNING'
+    print('SERVER RUNNING')
 
     while not rospy.is_shutdown():
         try:
@@ -16,5 +16,5 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print('Kill signal received.')
 
-    print 'Shutting down interop server...'
+    print('Shutting down interop server...')
     os.system('docker stop interop-server')

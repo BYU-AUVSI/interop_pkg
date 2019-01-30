@@ -49,26 +49,8 @@ class InteropClient(object):
 
     def target_callback(self, data):
         # Setup target model and pass to post_target() and post_target_image()
-        # TODO: create thread for this
-        orientation_deg = data.orientation % 360
-        if (orientation_deg <= 22.5 or orientation_deg >= 337.5):
-            orientation = "n"
-        elif (orientation_deg >= 22.5 and orientation_deg <= 67.5):
-            orientation = "nw"
-        elif (orientation_deg >= 67.5 and orientation_deg <= 112.5):
-            orientation = "w"
-        elif (orientation_deg >= 112.5 and orientation_deg <= 157.5):
-            orientation = "sw"
-        elif (orientation_deg >= 157.5 and orientation_deg <= 202.5):
-            orientation = "s"
-        elif (orientation_deg >= 202.5 and orientation_deg <= 247.5):
-            orientation = "se"
-        elif (orientation_deg >= 247.5 and orientation_deg <= 292.5):
-            orientation = "e"
-        else:
-            orientation = "ne"
 
-        target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
+        target = Target(data.type, data.latitude, data.longitude, data.orientation, data.shape, data.background_color, data.alphanumeric, data.alphanumeric_color, data.description, data.autonomous)
 
         cv2_img = None
         try:
@@ -82,45 +64,12 @@ class InteropClient(object):
         try:
             target_id = self.post_target(target) # Throws if posting the target fails after retries
         except PostFailedException:
-            # Write target / target image to object file
-            target_id = self.pick_unique_id()
-            print("Writing target data and image to file with generated id: {}".format(target_id))
-            self.write_target_data_to_file(target, target_id)
-            self.write_target_image_to_file(cv2_img, target_id)
+            # if the post failed, then dont post the image. 
+            # imaging subsystem has already saved a copy of the image in odlc format
             return
 
         # If posting the target data succeeded, now post the target image
         self.post_target_image(target_id, cv2_img)
-
-    def write_target_data_to_file(self, target_data, target_id):
-        self.make_directory_if_not_exists(self.BACKUP_OBJECT_PATH)
-
-        name = self.BACKUP_OBJECT_PATH + str(target_id) + ".json"
-
-        # Write target_data as json to name path
-        params = {'type': target_data.type, 'latitude': target_data.latitude, 'longitude': target_data.longitude,
-                  'orientation': target_data.orientation, 'shape': target_data.shape, 'background_color': target_data.background_color,
-                  'alphanumeric': target_data.alphanumeric, 'alphanumeric_color': target_data.alphanumeric_color,
-                  'description': target_data.description, 'autonomous':target_data.autonomous}
-
-        json_params = json.dumps(params)
-        with open(name, "w") as f:
-            f.write(json_params)
-
-    def write_target_image_to_file(self, image, target_id):
-        self.make_directory_if_not_exists(self.BACKUP_OBJECT_PATH)
-
-        name = self.BACKUP_OBJECT_PATH + str(target_id) + ".jpg"
-        cv2.imwrite(name, image)
-
-    def make_directory_if_not_exists(self, directory):
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    def pick_unique_id(self):
-        # global unique_id
-        self.unique_id += 1
-        return self.unique_id
 
     def state_callback(self, data):
         # These come in as NED, so convert to lat / lon
@@ -145,7 +94,7 @@ class InteropClient(object):
     def listener(self):
         print('Listening')
         rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Subscriber("/plans", interopImages, self.target_callback) # images + metadata from imaging gui
+        rospy.Subscriber("/target_submission", interopImages, self.target_callback) # images + metadata from imaging gui
         #  processing
         rospy.spin()
 
