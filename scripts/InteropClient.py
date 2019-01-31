@@ -396,4 +396,4 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             print('Kill signal received.')
 
-    print 'Shutting down interop client...'
+    print('Shutting down interop client...')
