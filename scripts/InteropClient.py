@@ -15,7 +15,7 @@ from std_msgs.msg import String
 from std_msgs.msg import Float64
 from sensor_msgs.msg import NavSatFix
 from rosplane_msgs.msg import State
-from sniper_cam.msg import interopImages
+from uav_msgs.msg import InteropImage
 from uav_msgs.srv import GetMissionWithId
 from uav_msgs.msg import *
 from ClientObjects import PostFailedException, Telemetry, Target
@@ -94,7 +94,7 @@ class InteropClient(object):
     def listener(self):
         print('Listening')
         rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Subscriber("/target_submission", interopImages, self.target_callback) # images + metadata from imaging gui
+        rospy.Subscriber("/target_submission", InteropImage, self.target_callback) # images + metadata from imaging gui
         #  processing
         rospy.spin()
 
