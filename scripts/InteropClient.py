@@ -21,8 +21,8 @@ from uav_msgs.msg import *
 from ClientObjects import PostFailedException, Telemetry, Target
 
 class InteropClient(object):
-    def __init__(self, server_ip, server_port, server_url, retry_max, backup_path,
-                 unique_id, init_lat, init_lon, r_earth, sleep_sec):
+    def __init__(self, server_ip, server_port, server_url, retry_max, 
+                    init_lat, init_lon, r_earth, sleep_sec):
         self.SERVERADDR = server_ip
         self.SERVERPORT = server_port
         self.SERVERURL = server_url
@@ -30,8 +30,6 @@ class InteropClient(object):
         self.CONNECTED = False
         self.RETRY_MAX = retry_max
         self.SESSION = requests.Session()
-        self.BACKUP_OBJECT_PATH = backup_path
-        self.unique_id = unique_id
         self.connectedLock = threading.Lock()
         # For NED to LatLon conversions
         self.HOME = [init_lat, init_lon]
@@ -94,7 +92,7 @@ class InteropClient(object):
     def listener(self):
         print('Listening')
         rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Subscriber("/target_submission", InteropImage, self.target_callback) # images + metadata from imaging gui
+        rospy.Subscriber("/imaging/target", InteropImage, self.target_callback) # images + metadata from imaging gui
         #  processing
         rospy.spin()
 
@@ -206,16 +204,6 @@ class InteropClient(object):
         json_obstacles = json.loads(string)
         print("Got obstacles!")
 
-    # def get_cookie():
-    #     global self.GLOBALCOOKIE
-    #     return GLOBALCOOKIE
-
-
-    # def set_cookie(cookie):
-    #     global GLOBALCOOKIE
-    #     GLOBALCOOKIE = cookie
-
-
     def is_connected(self):
         # global CONNECTED
 
@@ -225,14 +213,12 @@ class InteropClient(object):
 
         return connected
 
-
     def set_is_connected(self, connected):
         # global CONNECTED
 
         self.connectedLock.acquire()
         self.CONNECTED = connected
         self.connectedLock.release()
-
 
     def connect(self):
         # params = {"username": "testuser", "password": "testpass"}
@@ -262,7 +248,6 @@ class InteropClient(object):
             print("could not connect to server. (address=" + self.SERVERADDR + ", port=" + str(self.SERVERPORT) + ", " + ", ".join(str(params).split("&")) + "). exiting...")
             exit()
 
-
     def send_request(self, method, resource, params, headers):
         response = None
 
@@ -277,7 +262,7 @@ class InteropClient(object):
                 response = self.SESSION.get(self.SERVERURL+resource, headers=headers)
             elif method == 'POST':
                 response = self.SESSION.post(self.SERVERURL+resource, headers=headers, data=params)
-                print("Successfully posted: {}, {}, {}".format(resource,params,headers))
+                print("Successfully posted: {}, {}".format(resource,headers))
             elif method == 'PUT':
                 response = self.SESSION.put(self.SERVERURL+resource, headers=headers, data=params)
 
@@ -309,11 +294,9 @@ class InteropClient(object):
 
         return response
 
-
     def get_obstacles(self):
         response = self.send_request('GET', '/api/obstacles', None, headers={'Cookie': self.GLOBALCOOKIE})
         return response.text
-
 
     def get_missions(self):
         response = self.send_request('GET', '/api/missions', None, headers={'Cookie': self.GLOBALCOOKIE})
@@ -325,7 +308,6 @@ class InteropClient(object):
                         'uas_heading': telemetry.heading})
         headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain", 'Cookie': self.GLOBALCOOKIE}
         response = self.send_request('POST', '/api/telemetry', params, headers)
-
 
     def post_target(self, target):
         params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
@@ -340,7 +322,7 @@ class InteropClient(object):
 
         for retry in range(self.RETRY_MAX):
             if response.status_code == 201:
-                ROS_WARN("Target was submitted successfully on try {}!".format(retry + 1))
+                print("Target was submitted successfully on try {}!".format(retry + 1))
                 return response.json()['id']
             else:
                 print("Something went wrong with posting a target, trying again")
@@ -356,7 +338,7 @@ class InteropClient(object):
 
         for retry in range(self.RETRY_MAX):
             if response.status_code == 200:
-                ROS_WARN("Target image was submitted successfully on try {}!".format(retry + 1))
+                print("Target image was submitted successfully on try {}!".format(retry + 1))
                 return
             else:
                 print("Something went wrong with posting an image, trying again")
@@ -378,16 +360,14 @@ if __name__ == '__main__':
     server_port = rospy.get_param("~SERVER_PORT")
     server_url = "http://" + server_ip + ":" + str(server_port)
     retry_max = rospy.get_param("~MAX_RETRIES")
-    backup_path = os.path.expanduser(rospy.get_param("~BACKUP_OBJECT_PATH"))
-    unique_id = rospy.get_param("~unique_id")
     init_lat = rospy.get_param("~init_lat")
     init_lon = rospy.get_param("~init_lon")
     r_earth = rospy.get_param("~r_earth")
     sleep_sec = rospy.get_param("~sleep_sec")
 
     # initialize client
-    client = InteropClient(server_ip, server_port, server_url, retry_max, backup_path,
-                           unique_id, init_lat, init_lon, r_earth, sleep_sec)
+    client = InteropClient(server_ip, server_port, server_url, retry_max, 
+                init_lat, init_lon, r_earth, sleep_sec)
 
     # keep the program running until manually killed
     while not rospy.is_shutdown():
