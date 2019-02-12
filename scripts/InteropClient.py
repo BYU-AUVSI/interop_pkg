@@ -15,7 +15,7 @@ from std_msgs.msg import String
 from std_msgs.msg import Float64
 from sensor_msgs.msg import NavSatFix
 from rosplane_msgs.msg import State
-from uav_msgs.msg import InteropImage
+from uav_msgs.srv import SubmitImage
 from uav_msgs.srv import GetMissionWithId
 from uav_msgs.msg import *
 from ClientObjects import PostFailedException, Telemetry, Target
@@ -45,7 +45,7 @@ class InteropClient(object):
         self.listenerThread.start()
         self.talker()
 
-    def target_callback(self, data):
+    def target_submission_handler(self, data):
         # Setup target model and pass to post_target() and post_target_image()
 
         target = Target(data.type, data.latitude, data.longitude, data.orientation, data.shape, data.background_color, data.alphanumeric, data.alphanumeric_color, data.description, data.autonomous)
@@ -62,12 +62,23 @@ class InteropClient(object):
         try:
             target_id = self.post_target(target) # Throws if posting the target fails after retries
         except PostFailedException:
-            # if the post failed, then dont post the image. 
-            # imaging subsystem has already saved a copy of the image in odlc format
-            return
+            # if the post failed, then dont put the image. 
+            # imaging subsystem has already saved a copy of the image in odlc format on disk
+            # let them know that we failed to submit
+            return SubmitImageResponse(False)
 
-        # If posting the target data succeeded, now post the target image
-        self.post_target_image(target_id, cv2_img)
+        try:
+            # If posting the target data succeeded, now post the target image
+            self.post_target_image(target_id, cv2_img)
+        except PostFailedException:
+            # the image failed to post. remove the target from the judge server
+            # if possible and return failure
+            print("WARN: Failed to post image for target {}".format(target_id))
+            if not delete_target(target_id):
+                print("WARN: Failed to remove target with id {} from judge server".format(target_id))
+            return SubmitImageResponse(False)
+
+        return SubmitImageResponse(True)
 
     def state_callback(self, data):
         # These come in as NED, so convert to lat / lon
@@ -92,7 +103,7 @@ class InteropClient(object):
     def listener(self):
         print('Listening')
         rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Subscriber("/imaging/target", InteropImage, self.target_callback) # images + metadata from imaging gui
+        rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
         #  processing
         rospy.spin()
 
@@ -265,6 +276,8 @@ class InteropClient(object):
                 print("Successfully posted: {}, {}".format(resource,headers))
             elif method == 'PUT':
                 response = self.SESSION.put(self.SERVERURL+resource, headers=headers, data=params)
+            elif method == 'DELETE':
+                response = self.SESSION.delete(self.SERVERURL+resource, headers=headers, data=params)
 
             if response.status_code == 200 or response.status_code == 201:
                 break
@@ -326,9 +339,16 @@ class InteropClient(object):
                 return response.json()['id']
             else:
                 print("Something went wrong with posting a target, trying again")
+                # actually try again...
+                response = self.send_request('POST', '/api/odlcs', json_params, headers)
 
         print("Target failed after {} tries".format(self.RETRY_MAX))
         raise PostFailedException()
+
+    def delete_target(self, target_id):
+        headers = {'Cookie': self.GLOBALCOOKIE}
+        response = self.send_request('DELETE', '/api/odlcs/' + str(target_id), None, headers)
+        return response.status_code == 200
 
     def post_target_image(self, target_id, image):
         encoded_image = cv2.imencode(".jpg", image)[1].tostring()
@@ -342,8 +362,9 @@ class InteropClient(object):
                 return
             else:
                 print("Something went wrong with posting an image, trying again")
-        print("Writing target image to file with id: {}".format(target_id))
-        self.write_target_image_to_file(image, target_id)
+
+        print("Failed to post target image with id: {}".format(target_id))
+        raise PostFailedException()
 
     def feetToMeters(self, feet):
         return feet * 0.3048
