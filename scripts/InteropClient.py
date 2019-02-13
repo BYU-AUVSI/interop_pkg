@@ -15,7 +15,7 @@ from std_msgs.msg import String
 from std_msgs.msg import Float64
 from sensor_msgs.msg import NavSatFix
 from rosplane_msgs.msg import State
-from uav_msgs.srv import SubmitImage
+from uav_msgs.srv import SubmitImage, SubmitImageResponse
 from uav_msgs.srv import GetMissionWithId
 from uav_msgs.msg import *
 from ClientObjects import PostFailedException, Telemetry, Target
