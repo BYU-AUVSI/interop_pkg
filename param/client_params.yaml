@@ -6,5 +6,3 @@ MAX_RETRIES: 10 # number of times client will try to connect to server before gi
 init_lat: 38.144692
 init_lon: -76.428007
 r_earth: 6370027
-BACKUP_OBJECT_PATH: "~/Desktop/objects/"
-unique_id: 0 # id that we will use to write images when we don't get one assigned from server

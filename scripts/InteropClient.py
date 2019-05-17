@@ -15,14 +15,14 @@ from std_msgs.msg import String
 from std_msgs.msg import Float64
 from sensor_msgs.msg import NavSatFix
 from rosplane_msgs.msg import State
-from sniper_cam.msg import interopImages
+from uav_msgs.srv import SubmitImage, SubmitImageResponse
 from uav_msgs.srv import GetMissionWithId
 from uav_msgs.msg import *
 from ClientObjects import PostFailedException, Telemetry, Target
 
 class InteropClient(object):
-    def __init__(self, server_ip, server_port, server_url, retry_max, backup_path,
-                 unique_id, init_lat, init_lon, r_earth, sleep_sec):
+    def __init__(self, server_ip, server_port, server_url, retry_max, 
+                    init_lat, init_lon, r_earth, sleep_sec):
         self.SERVERADDR = server_ip
         self.SERVERPORT = server_port
         self.SERVERURL = server_url
@@ -30,8 +30,6 @@ class InteropClient(object):
         self.CONNECTED = False
         self.RETRY_MAX = retry_max
         self.SESSION = requests.Session()
-        self.BACKUP_OBJECT_PATH = backup_path
-        self.unique_id = unique_id
         self.connectedLock = threading.Lock()
         # For NED to LatLon conversions
         self.HOME = [init_lat, init_lon]
@@ -47,28 +45,10 @@ class InteropClient(object):
         self.listenerThread.start()
         self.talker()
 
-    def target_callback(self, data):
+    def target_submission_handler(self, data):
         # Setup target model and pass to post_target() and post_target_image()
-        # TODO: create thread for this
-        orientation_deg = data.orientation % 360
-        if (orientation_deg <= 22.5 or orientation_deg >= 337.5):
-            orientation = "n"
-        elif (orientation_deg >= 22.5 and orientation_deg <= 67.5):
-            orientation = "nw"
-        elif (orientation_deg >= 67.5 and orientation_deg <= 112.5):
-            orientation = "w"
-        elif (orientation_deg >= 112.5 and orientation_deg <= 157.5):
-            orientation = "sw"
-        elif (orientation_deg >= 157.5 and orientation_deg <= 202.5):
-            orientation = "s"
-        elif (orientation_deg >= 202.5 and orientation_deg <= 247.5):
-            orientation = "se"
-        elif (orientation_deg >= 247.5 and orientation_deg <= 292.5):
-            orientation = "e"
-        else:
-            orientation = "ne"
 
-        target = Target(data.type, data.gps_lati, data.gps_longit, orientation, data.target_shape, data.target_color, data.symbol, data.symbol_color, data.description, data.autonomous)
+        target = Target(data.type, data.latitude, data.longitude, data.orientation, data.shape, data.background_color, data.alphanumeric, data.alphanumeric_color, data.description, data.autonomous)
 
         cv2_img = None
         try:
@@ -82,45 +62,23 @@ class InteropClient(object):
         try:
             target_id = self.post_target(target) # Throws if posting the target fails after retries
         except PostFailedException:
-            # Write target / target image to object file
-            target_id = self.pick_unique_id()
-            print("Writing target data and image to file with generated id: {}".format(target_id))
-            self.write_target_data_to_file(target, target_id)
-            self.write_target_image_to_file(cv2_img, target_id)
-            return
+            # if the post failed, then dont put the image. 
+            # imaging subsystem has already saved a copy of the image in odlc format on disk
+            # let them know that we failed to submit
+            return SubmitImageResponse(False)
 
-        # If posting the target data succeeded, now post the target image
-        self.post_target_image(target_id, cv2_img)
+        try:
+            # If posting the target data succeeded, now post the target image
+            self.post_target_image(target_id, cv2_img)
+        except PostFailedException:
+            # the image failed to post. remove the target from the judge server
+            # if possible and return failure
+            print("WARN: Failed to post image for target {}".format(target_id))
+            if not delete_target(target_id):
+                print("WARN: Failed to remove target with id {} from judge server".format(target_id))
+            return SubmitImageResponse(False)
 
-    def write_target_data_to_file(self, target_data, target_id):
-        self.make_directory_if_not_exists(self.BACKUP_OBJECT_PATH)
-
-        name = self.BACKUP_OBJECT_PATH + str(target_id) + ".json"
-
-        # Write target_data as json to name path
-        params = {'type': target_data.type, 'latitude': target_data.latitude, 'longitude': target_data.longitude,
-                  'orientation': target_data.orientation, 'shape': target_data.shape, 'background_color': target_data.background_color,
-                  'alphanumeric': target_data.alphanumeric, 'alphanumeric_color': target_data.alphanumeric_color,
-                  'description': target_data.description, 'autonomous':target_data.autonomous}
-
-        json_params = json.dumps(params)
-        with open(name, "w") as f:
-            f.write(json_params)
-
-    def write_target_image_to_file(self, image, target_id):
-        self.make_directory_if_not_exists(self.BACKUP_OBJECT_PATH)
-
-        name = self.BACKUP_OBJECT_PATH + str(target_id) + ".jpg"
-        cv2.imwrite(name, image)
-
-    def make_directory_if_not_exists(self, directory):
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    def pick_unique_id(self):
-        # global unique_id
-        self.unique_id += 1
-        return self.unique_id
+        return SubmitImageResponse(True)
 
     def state_callback(self, data):
         # These come in as NED, so convert to lat / lon
@@ -145,7 +103,7 @@ class InteropClient(object):
     def listener(self):
         print('Listening')
         rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Subscriber("/plans", interopImages, self.target_callback) # images + metadata from imaging gui
+        rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
         #  processing
         rospy.spin()
 
@@ -257,16 +215,6 @@ class InteropClient(object):
         json_obstacles = json.loads(string)
         print("Got obstacles!")
 
-    # def get_cookie():
-    #     global self.GLOBALCOOKIE
-    #     return GLOBALCOOKIE
-
-
-    # def set_cookie(cookie):
-    #     global GLOBALCOOKIE
-    #     GLOBALCOOKIE = cookie
-
-
     def is_connected(self):
         # global CONNECTED
 
@@ -276,14 +224,12 @@ class InteropClient(object):
 
         return connected
 
-
     def set_is_connected(self, connected):
         # global CONNECTED
 
         self.connectedLock.acquire()
         self.CONNECTED = connected
         self.connectedLock.release()
-
 
     def connect(self):
         # params = {"username": "testuser", "password": "testpass"}
@@ -313,7 +259,6 @@ class InteropClient(object):
             print("could not connect to server. (address=" + self.SERVERADDR + ", port=" + str(self.SERVERPORT) + ", " + ", ".join(str(params).split("&")) + "). exiting...")
             exit()
 
-
     def send_request(self, method, resource, params, headers):
         response = None
 
@@ -328,9 +273,11 @@ class InteropClient(object):
                 response = self.SESSION.get(self.SERVERURL+resource, headers=headers)
             elif method == 'POST':
                 response = self.SESSION.post(self.SERVERURL+resource, headers=headers, data=params)
-                print("Successfully posted: {}, {}, {}".format(resource,params,headers))
+                print("Successfully posted: {}, {}".format(resource,headers))
             elif method == 'PUT':
                 response = self.SESSION.put(self.SERVERURL+resource, headers=headers, data=params)
+            elif method == 'DELETE':
+                response = self.SESSION.delete(self.SERVERURL+resource, headers=headers, data=params)
 
             if response.status_code == 200 or response.status_code == 201:
                 break
@@ -360,11 +307,9 @@ class InteropClient(object):
 
         return response
 
-
     def get_obstacles(self):
         response = self.send_request('GET', '/api/obstacles', None, headers={'Cookie': self.GLOBALCOOKIE})
         return response.text
-
 
     def get_missions(self):
         response = self.send_request('GET', '/api/missions', None, headers={'Cookie': self.GLOBALCOOKIE})
@@ -376,7 +321,6 @@ class InteropClient(object):
                         'uas_heading': telemetry.heading})
         headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain", 'Cookie': self.GLOBALCOOKIE}
         response = self.send_request('POST', '/api/telemetry', params, headers)
-
 
     def post_target(self, target):
         params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
@@ -391,13 +335,20 @@ class InteropClient(object):
 
         for retry in range(self.RETRY_MAX):
             if response.status_code == 201:
-                ROS_WARN("Target was submitted successfully on try {}!".format(retry + 1))
+                print("Target was submitted successfully on try {}!".format(retry + 1))
                 return response.json()['id']
             else:
                 print("Something went wrong with posting a target, trying again")
+                # actually try again...
+                response = self.send_request('POST', '/api/odlcs', json_params, headers)
 
         print("Target failed after {} tries".format(self.RETRY_MAX))
         raise PostFailedException()
+
+    def delete_target(self, target_id):
+        headers = {'Cookie': self.GLOBALCOOKIE}
+        response = self.send_request('DELETE', '/api/odlcs/' + str(target_id), None, headers)
+        return response.status_code == 200
 
     def post_target_image(self, target_id, image):
         encoded_image = cv2.imencode(".jpg", image)[1].tostring()
@@ -407,12 +358,13 @@ class InteropClient(object):
 
         for retry in range(self.RETRY_MAX):
             if response.status_code == 200:
-                ROS_WARN("Target image was submitted successfully on try {}!".format(retry + 1))
+                print("Target image was submitted successfully on try {}!".format(retry + 1))
                 return
             else:
                 print("Something went wrong with posting an image, trying again")
-        print("Writing target image to file with id: {}".format(target_id))
-        self.write_target_image_to_file(image, target_id)
+
+        print("Failed to post target image with id: {}".format(target_id))
+        raise PostFailedException()
 
     def feetToMeters(self, feet):
         return feet * 0.3048
@@ -429,16 +381,14 @@ if __name__ == '__main__':
     server_port = rospy.get_param("~SERVER_PORT")
     server_url = "http://" + server_ip + ":" + str(server_port)
     retry_max = rospy.get_param("~MAX_RETRIES")
-    backup_path = os.path.expanduser(rospy.get_param("~BACKUP_OBJECT_PATH"))
-    unique_id = rospy.get_param("~unique_id")
     init_lat = rospy.get_param("~init_lat")
     init_lon = rospy.get_param("~init_lon")
     r_earth = rospy.get_param("~r_earth")
     sleep_sec = rospy.get_param("~sleep_sec")
 
     # initialize client
-    client = InteropClient(server_ip, server_port, server_url, retry_max, backup_path,
-                           unique_id, init_lat, init_lon, r_earth, sleep_sec)
+    client = InteropClient(server_ip, server_port, server_url, retry_max, 
+                init_lat, init_lon, r_earth, sleep_sec)
 
     # keep the program running until manually killed
     while not rospy.is_shutdown():
@@ -447,4 +397,4 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             print('Kill signal received.')
 
-    print 'Shutting down interop client...'
+    print('Shutting down interop client...')
