@@ -1,8 +1,9 @@
 SERVER_IP: localhost
 SERVER_PORT: 8000
-sleep_sec: 4.0 # number of seconds to sleep before attempting to connect to the server
+sleep_sec: 1.0 # number of seconds to sleep before attempting to connect to the server
                # (give the server a chance to start up)
 MAX_RETRIES: 10 # number of times client will try to connect to server before giving up
+mission_id: 1
 username: testuser
 password: testpass
 init_lat: 38.144692

@@ -18,11 +18,12 @@ from rosplane_msgs.msg import State
 from uav_msgs.srv import SubmitImage, SubmitImageResponse
 from uav_msgs.srv import GetMissionWithId
 from uav_msgs.msg import *
-from ClientObjects import PostFailedException, Telemetry, Target
+from ClientObjects import PostFailedException, Telemetry, Target 
 
 class InteropClient(object):
-    def __init__(self, server_ip, server_port=8000, username='testuser', password='testpass', retry_max=10, 
-                    init_lat, init_lon, r_earth=6370027, sleep_sec=4.0):
+
+    def __init__(self, server_ip, server_port=8000, username='testuser', password='testpass', mission_id=1, retry_max=10, 
+                    init_lat=38.144692, init_lon=-76.428007, r_earth=6370027, sleep_sec=4.0):
         self.SERVERADDR = server_ip
         self.SERVERPORT = server_port
         self.SERVERURL = 'http://{}:{}'.format(server_ip, server_port)
@@ -32,6 +33,7 @@ class InteropClient(object):
         self.SESSION = requests.Session()
         self.USERNAME = username
         self.PASSWORD = password
+        self.MISSION_ID = mission_id
         self.connectedLock = threading.Lock()
         # For NED to LatLon conversions
         self.HOME = [init_lat, init_lon]
@@ -42,25 +44,19 @@ class InteropClient(object):
         self.connect()
 
         # Setup ROS subscribers and publishers
-        self.listenerThread = threading.Thread(target=self.listener)
-        self.listenerThread.setDaemon(True)
-        self.listenerThread.start()
-        self.talker()
+        self.listener()
+        # self.listenerThread = threading.Thread(target=self.listener)
+        # self.listenerThread.setDaemon(True)
+        # self.listenerThread.start()
+        # self.talker()
 
     def listener(self):
         print('Listening')
         rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
         rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
+        s = rospy.Service("get_mission_with_id", GetMissionWithId, self.get_mission_with_id_handler)
         #  processing
         rospy.spin()
-
-    def talker(self):
-        print('Talking')
-
-        # Init the GetMission service handler
-        s = rospy.Service("get_mission_with_id", GetMissionWithId, self.get_mission_with_id_handler)
-
-        rate = rospy.Rate(1) # not sure if we need this. i think this is from when we tried to publish moving obstacle info every second
 
     def target_submission_handler(self, data):
         # Setup target model and pass to post_target() and post_target_image()
@@ -112,89 +108,72 @@ class InteropClient(object):
         sendTelemThread.setDaemon(True)
         sendTelemThread.start()
 
-    def nedToLatLon(self, ned):
-        lat = self.HOME[0] + math.degrees(math.asin(ned[0]/self.R_EARTH))
-        lon = self.HOME[1] + math.degrees(math.asin(ned[1]/(math.cos(math.radians(self.HOME[0]))*self.R_EARTH)))
-        return (lat, lon)
-
     def parse_point(self, json):
         point = Point()
-        point.latitude = json['latitude']
+        point.latitude  = json['latitude']
         point.longitude = json['longitude']
 
         # Point may optionally have an altitude
-        if 'altitude_msl' in json.keys():
-            point.altitude = self.feetToMeters(json['altitude_msl'])
+        if 'altitude' in json.keys():
+            point.altitude = self.feetToMeters(json['altitude'])
 
         return point
 
-    def parse_ordered_point(self, json):
+    def parse_ordered_point(self, json, index):
         ordered_point = OrderedPoint()
         ordered_point.point = self.parse_point(json)
-        ordered_point.ordinal = json['order']
+        ordered_point.ordinal = index
         return ordered_point
 
     def get_mission_with_id_handler(self, req):
-        mission_str = self.get_missions()
-        json_missions = json.loads(mission_str)
+        headers = {'Cookie': self.GLOBALCOOKIE}
+        endpoint = "/api/missions/{}".format(req.mission_type)
+        response = self.send_request('GET', endpoint, None, headers)
+        json_mission = json.loads(response.text)
 
-        # Handle multiple missions for testing purposes
-        # Just take the first mission that is active
-        json_mission = None
-        for mission in json_missions:
-            if mission["active"]:
-                json_mission = mission
-
-        print(json_mission)
-        json_obstacles = json.loads(obstacles_str)
-
-        mission_type = req.mission_type
         mission = JudgeMission()
-
         # Set mission type on response
-        mission.mission_type = mission_type
+        mission.mission_type = req.mission_type
 
         # Set boundaries (competition boundaries) on response
-        for json_point in json_mission['fly_zones'][0]['boundary_pts']:
-            ordered = self.parse_ordered_point(json_point)
+        i = 0
+        for json_point in json_mission['flyZones'][0]['boundaryPoints']:
+            ordered = self.parse_ordered_point(json_point, i)
             mission.boundaries.append(ordered)
+            i = i + 1
 
         # Set stationary obstacles on response
-        for json_obstacle in json_obstacles['stationary_obstacles']:
+        for json_obstacle in json_mission['stationaryObstacles']:
             point = self.parse_point(json_obstacle)
 
             obstacle = StationaryObstacle()
             obstacle.point = point
-            obstacle.cylinder_height = self.feetToMeters(json_obstacle['cylinder_height'])
-            obstacle.cylinder_radius = self.feetToMeters(json_obstacle['cylinder_radius'])
+            obstacle.cylinder_height = self.feetToMeters(json_obstacle['height'])
+            obstacle.cylinder_radius = self.feetToMeters(json_obstacle['radius'])
 
             mission.stationary_obstacles.append(obstacle)
 
-        # Set waypoints based on mission type
-        if(mission_type == JudgeMission.MISSION_TYPE_WAYPOINT):
+        i = 0
+        for mission_waypoint in json_mission['waypoints']:
+            waypoint = self.parse_ordered_point(mission_waypoint, i)
+            mission.waypoints.append(waypoint)
+            i = i + 1
 
-            # Use "mission_waypoints" from judge-provided mission
-            for mission_waypoint in json_mission['mission_waypoints']:
-                waypoint = self.parse_ordered_point(mission_waypoint)
-                mission.waypoints.append(waypoint)
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_DROP):
+        # Use "air_drop_pos" from judge-provided mission
+        point = self.parse_point(json_mission['airDropPos'])
+        ordered = OrderedPoint()
+        ordered.point = point
+        ordered.ordinal = 1
+        mission.waypoints.append(ordered)
 
-            # Use "air_drop_pos" from judge-provided mission
-            point = self.parse_point(json_mission['air_drop_pos'])
-            point.altitude = self.feetToMeters(json_mission['fly_zones'][0]['altitude_msl_min']) # So we know later a baseline of how low we can fly
-            ordered = OrderedPoint()
-            ordered.point = point
-            ordered.ordinal = 1
-            mission.waypoints.append(ordered)
-
-        elif(mission_type == JudgeMission.MISSION_TYPE_SEARCH):
+        elif mission_type == JudgeMission.MISSION_TYPE_SEARCH:
             # Use search grid boundaries as waypoints. Caller will generate actual search path within this.
             for search_grid_point in json_mission['search_grid_points']:
                 point = self.parse_ordered_point(search_grid_point)
                 mission.waypoints.append(point)
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_OFFAXIS):
+        elif mission_type == JudgeMission.MISSION_TYPE_OFFAXIS:
             # Get off axis position
             point = self.parse_point(json_mission['off_axis_odlc_pos'])
             ordered = OrderedPoint()
@@ -202,7 +181,7 @@ class InteropClient(object):
             ordered.ordinal = 1
             mission.waypoints.append(ordered)
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_EMERGENT):
+        elif mission_type == JudgeMission.MISSION_TYPE_EMERGENT:
             # Get emergent position
             point = self.parse_point(json_mission["emergent_last_known_pos"])
             ordered = OrderedPoint()
@@ -303,10 +282,6 @@ class InteropClient(object):
 
         return response
 
-    def get_missions(self):
-        response = self.send_request('GET', '/api/missions', None, headers={'Cookie': self.GLOBALCOOKIE})
-        return response.text
-
     def post_telemetry(self, telemetry):
         params = urllib.urlencode(
                     {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude_msl': telemetry.altitude,
@@ -358,11 +333,20 @@ class InteropClient(object):
         print("Failed to post target image with id: {}".format(target_id))
         raise PostFailedException()
 
+    #####################
+    ## Utility methods ##
+    #####################
+
     def feetToMeters(self, feet):
         return feet * 0.3048
 
     def metersToFeet(self, meters):
         return meters * 3.28084
+
+    def nedToLatLon(self, ned):
+        lat = self.HOME[0] + math.degrees(math.asin(ned[0]/self.R_EARTH))
+        lon = self.HOME[1] + math.degrees(math.asin(ned[1]/(math.cos(math.radians(self.HOME[0]))*self.R_EARTH)))
+        return (lat, lon)
 
 if __name__ == '__main__':
     # initialize node
@@ -371,6 +355,7 @@ if __name__ == '__main__':
     # load parameters
     server_ip   = rospy.get_param("~SERVER_IP")
     server_port = rospy.get_param("~SERVER_PORT")
+    mission_id  = rospy.get_param("~mission_id")
     username    = rospy.get_param("~username", "testuser")
     password    = rospy.get_param("~password", "testpass")
     retry_max   = rospy.get_param("~MAX_RETRIES")
@@ -380,7 +365,7 @@ if __name__ == '__main__':
     sleep_sec   = rospy.get_param("~sleep_sec")
 
     # initialize client
-    client = InteropClient(server_ip, server_port, username, password, retry_max, 
+    client = InteropClient(server_ip, server_port, username, password, mission_id, retry_max, 
                 init_lat, init_lon, r_earth, sleep_sec)
 
     # keep the program running until manually killed
