@@ -4,7 +4,6 @@
 class PostFailedException(Exception):
     pass
 
-
 class Telemetry(object):
     def __init__(self, latitude, longitude, altitude, heading):
         self.latitude = latitude

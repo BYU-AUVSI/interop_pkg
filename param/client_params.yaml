@@ -3,6 +3,8 @@ SERVER_PORT: 8000
 sleep_sec: 4.0 # number of seconds to sleep before attempting to connect to the server
                # (give the server a chance to start up)
 MAX_RETRIES: 10 # number of times client will try to connect to server before giving up
+username: testuser
+password: testpass
 init_lat: 38.144692
 init_lon: -76.428007
 r_earth: 6370027

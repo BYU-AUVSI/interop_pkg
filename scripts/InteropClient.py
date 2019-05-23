@@ -21,15 +21,17 @@ from uav_msgs.msg import *
 from ClientObjects import PostFailedException, Telemetry, Target
 
 class InteropClient(object):
-    def __init__(self, server_ip, server_port, server_url, retry_max, 
-                    init_lat, init_lon, r_earth, sleep_sec):
+    def __init__(self, server_ip, server_port=8000, username='testuser', password='testpass', retry_max=10, 
+                    init_lat, init_lon, r_earth=6370027, sleep_sec=4.0):
         self.SERVERADDR = server_ip
         self.SERVERPORT = server_port
-        self.SERVERURL = server_url
+        self.SERVERURL = 'http://{}:{}'.format(server_ip, server_port)
         self.GLOBALCOOKIE = None
         self.CONNECTED = False
         self.RETRY_MAX = retry_max
         self.SESSION = requests.Session()
+        self.USERNAME = username
+        self.PASSWORD = password
         self.connectedLock = threading.Lock()
         # For NED to LatLon conversions
         self.HOME = [init_lat, init_lon]
@@ -44,6 +46,21 @@ class InteropClient(object):
         self.listenerThread.setDaemon(True)
         self.listenerThread.start()
         self.talker()
+
+    def listener(self):
+        print('Listening')
+        rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
+        rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
+        #  processing
+        rospy.spin()
+
+    def talker(self):
+        print('Talking')
+
+        # Init the GetMission service handler
+        s = rospy.Service("get_mission_with_id", GetMissionWithId, self.get_mission_with_id_handler)
+
+        rate = rospy.Rate(1) # not sure if we need this. i think this is from when we tried to publish moving obstacle info every second
 
     def target_submission_handler(self, data):
         # Setup target model and pass to post_target() and post_target_image()
@@ -100,13 +117,6 @@ class InteropClient(object):
         lon = self.HOME[1] + math.degrees(math.asin(ned[1]/(math.cos(math.radians(self.HOME[0]))*self.R_EARTH)))
         return (lat, lon)
 
-    def listener(self):
-        print('Listening')
-        rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
-        #  processing
-        rospy.spin()
-
     def parse_point(self, json):
         point = Point()
         point.latitude = json['latitude']
@@ -126,7 +136,6 @@ class InteropClient(object):
 
     def get_mission_with_id_handler(self, req):
         mission_str = self.get_missions()
-        obstacles_str = self.get_obstacles()
         json_missions = json.loads(mission_str)
 
         # Handle multiple missions for testing purposes
@@ -203,18 +212,6 @@ class InteropClient(object):
 
         return mission
 
-    def talker(self):
-        print('Talking')
-
-        # Init the GetMission service handler
-        s = rospy.Service("get_mission_with_id", GetMissionWithId, self.get_mission_with_id_handler)
-
-        rate = rospy.Rate(1) # not sure if we need this. i think this is from when we tried to publish moving obstacle info every second
-
-        string = self.get_obstacles()
-        json_obstacles = json.loads(string)
-        print("Got obstacles!")
-
     def is_connected(self):
         # global CONNECTED
 
@@ -232,8 +229,7 @@ class InteropClient(object):
         self.connectedLock.release()
 
     def connect(self):
-        # params = {"username": "testuser", "password": "testpass"}
-        params = {"username": "testuser", "password": "testpass"}
+        params = {"username": self.USERNAME, "password": self.PASSWORD}
         retry_count = 0
         while not self.is_connected() and retry_count < self.RETRY_MAX:
             retry_count+=1
@@ -307,10 +303,6 @@ class InteropClient(object):
 
         return response
 
-    def get_obstacles(self):
-        response = self.send_request('GET', '/api/obstacles', None, headers={'Cookie': self.GLOBALCOOKIE})
-        return response.text
-
     def get_missions(self):
         response = self.send_request('GET', '/api/missions', None, headers={'Cookie': self.GLOBALCOOKIE})
         return response.text
@@ -377,17 +369,18 @@ if __name__ == '__main__':
     rospy.init_node('interop_client', anonymous=True)
 
     # load parameters
-    server_ip = rospy.get_param("~SERVER_IP")
+    server_ip   = rospy.get_param("~SERVER_IP")
     server_port = rospy.get_param("~SERVER_PORT")
-    server_url = "http://" + server_ip + ":" + str(server_port)
-    retry_max = rospy.get_param("~MAX_RETRIES")
-    init_lat = rospy.get_param("~init_lat")
-    init_lon = rospy.get_param("~init_lon")
-    r_earth = rospy.get_param("~r_earth")
-    sleep_sec = rospy.get_param("~sleep_sec")
+    username    = rospy.get_param("~username", "testuser")
+    password    = rospy.get_param("~password", "testpass")
+    retry_max   = rospy.get_param("~MAX_RETRIES")
+    init_lat    = rospy.get_param("~init_lat")
+    init_lon    = rospy.get_param("~init_lon")
+    r_earth     = rospy.get_param("~r_earth")
+    sleep_sec   = rospy.get_param("~sleep_sec")
 
     # initialize client
-    client = InteropClient(server_ip, server_port, server_url, retry_max, 
+    client = InteropClient(server_ip, server_port, username, password, retry_max, 
                 init_lat, init_lon, r_earth, sleep_sec)
 
     # keep the program running until manually killed
