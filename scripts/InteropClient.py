@@ -298,7 +298,7 @@ class InteropClient(object):
     def post_target(self, target):
         params = {'mission': self.MISSION_ID, 'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
                   'orientation': target.orientation, 'shape': target.shape, 'shapeColor': target.background_color,
-                  'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
+                  'alphanumeric': target.alphanumeric, 'alphanumericColor': target.alphanumeric_color,
                   'description': target.description, 'autonomous':target.autonomous}
 
         json_params = json.dumps(params)
