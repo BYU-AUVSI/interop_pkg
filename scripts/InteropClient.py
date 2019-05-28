@@ -126,14 +126,16 @@ class InteropClient(object):
         return ordered_point
 
     def get_mission_with_id_handler(self, req):
+
+        mission_type = req.mission_type
         headers = {'Cookie': self.GLOBALCOOKIE}
-        endpoint = "/api/missions/{}".format(req.mission_type)
+        endpoint = "/api/missions/{}".format(self.MISSION_ID)
         response = self.send_request('GET', endpoint, None, headers)
         json_mission = json.loads(response.text)
 
         mission = JudgeMission()
         # Set mission type on response
-        mission.mission_type = req.mission_type
+        mission.mission_type = mission_type
 
         # Set boundaries (competition boundaries) on response
         i = 0
@@ -153,29 +155,33 @@ class InteropClient(object):
 
             mission.stationary_obstacles.append(obstacle)
 
-        i = 0
-        for mission_waypoint in json_mission['waypoints']:
-            waypoint = self.parse_ordered_point(mission_waypoint, i)
-            mission.waypoints.append(waypoint)
-            i = i + 1
 
+        if mission_type == JudgeMission.MISSION_TYPE_WAYPOINT:
+            i = 0
+            for mission_waypoint in json_mission['waypoints']:
+                waypoint = self.parse_ordered_point(mission_waypoint, i)
+                mission.waypoints.append(waypoint)
+                i = i + 1
 
-        # Use "air_drop_pos" from judge-provided mission
-        point = self.parse_point(json_mission['airDropPos'])
-        ordered = OrderedPoint()
-        ordered.point = point
-        ordered.ordinal = 1
-        mission.waypoints.append(ordered)
+        elif mission_type == JudgeMission.MISSION_TYPE_DROP:
+            # Use "air_drop_pos" from judge-provided mission
+            point = self.parse_point(json_mission['airDropPos'])
+            ordered = OrderedPoint()
+            ordered.point = point
+            ordered.ordinal = 1
+            mission.waypoints.append(ordered)
 
         elif mission_type == JudgeMission.MISSION_TYPE_SEARCH:
             # Use search grid boundaries as waypoints. Caller will generate actual search path within this.
-            for search_grid_point in json_mission['search_grid_points']:
-                point = self.parse_ordered_point(search_grid_point)
+            i = 0
+            for search_grid_point in json_mission['searchGridPoints']:
+                point = self.parse_ordered_point(search_grid_point, i)
                 mission.waypoints.append(point)
+                i = i + 1
 
         elif mission_type == JudgeMission.MISSION_TYPE_OFFAXIS:
             # Get off axis position
-            point = self.parse_point(json_mission['off_axis_odlc_pos'])
+            point = self.parse_point(json_mission['offAxisOdlcPos'])
             ordered = OrderedPoint()
             ordered.point = point
             ordered.ordinal = 1
@@ -183,7 +189,7 @@ class InteropClient(object):
 
         elif mission_type == JudgeMission.MISSION_TYPE_EMERGENT:
             # Get emergent position
-            point = self.parse_point(json_mission["emergent_last_known_pos"])
+            point = self.parse_point(json_mission["emergentLastKnownPos"])
             ordered = OrderedPoint()
             ordered.point = point
             ordered.ordinal = 1
@@ -284,14 +290,14 @@ class InteropClient(object):
 
     def post_telemetry(self, telemetry):
         params = urllib.urlencode(
-                    {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude_msl': telemetry.altitude,
-                        'uas_heading': telemetry.heading})
-        headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain", 'Cookie': self.GLOBALCOOKIE}
+                    {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude': telemetry.altitude,
+                        'heading': telemetry.heading})
+        headers = {'Cookie': self.GLOBALCOOKIE}
         response = self.send_request('POST', '/api/telemetry', params, headers)
 
     def post_target(self, target):
-        params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
-                  'orientation': target.orientation, 'shape': target.shape, 'background_color': target.background_color,
+        params = {'mission': self.MISSION_ID, 'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
+                  'orientation': target.orientation, 'shape': target.shape, 'shapeColor': target.background_color,
                   'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
                   'description': target.description, 'autonomous':target.autonomous}
 
