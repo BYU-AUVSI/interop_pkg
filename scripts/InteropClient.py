@@ -103,10 +103,7 @@ class InteropClient(object):
         hdg = math.degrees(data.chi % (2 * math.pi))
 
         telemetry = Telemetry(lat, lon, alt, hdg)
-
-        sendTelemThread = threading.Thread(target=self.post_telemetry, args=(telemetry,))
-        sendTelemThread.setDaemon(True)
-        sendTelemThread.start()
+	self.post_telemetry(telemetry)
 
     def parse_point(self, json):
         point = Point()
@@ -289,11 +286,11 @@ class InteropClient(object):
         return response
 
     def post_telemetry(self, telemetry):
-        params = urllib.urlencode(
-                    {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude': telemetry.altitude,
-                        'heading': telemetry.heading})
-        headers = {'Cookie': self.GLOBALCOOKIE}
-        response = self.send_request('POST', '/api/telemetry', params, headers)
+        params = {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude': telemetry.altitude,
+                        'heading': telemetry.heading}
+	json_params = json.dumps(params)
+        headers = {'Cookie': self.GLOBALCOOKIE, "Content-Type":"application/json"}
+        response = self.send_request('POST', '/api/telemetry', json_params, headers)
 
     def post_target(self, target):
         params = {'mission': self.MISSION_ID, 'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
