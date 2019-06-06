@@ -288,7 +288,7 @@ class InteropClient(object):
     def post_telemetry(self, telemetry):
         params = {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude': telemetry.altitude,
                         'heading': telemetry.heading}
-	json_params = json.dumps(params)
+	    json_params = json.dumps(params)
         headers = {'Cookie': self.GLOBALCOOKIE, "Content-Type":"application/json"}
         response = self.send_request('POST', '/api/telemetry', json_params, headers)
 
@@ -304,7 +304,7 @@ class InteropClient(object):
         response = self.send_request('POST', '/api/odlcs', json_params, headers)
 
         for retry in range(self.RETRY_MAX):
-            if response.status_code == 201:
+            if response.status_code == 200:
                 print("Target was submitted successfully on try {}!".format(retry + 1))
                 return response.json()['id']
             else:
