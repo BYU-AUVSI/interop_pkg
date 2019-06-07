@@ -1,4 +1,4 @@
-# interop_pkg
+# interop_pkg [![Build Status](https://travis-ci.com/BYU-AUVSI/interop_pkg.svg)](https://travis-ci.com/BYU-AUVSI/interop_pkg)
 
 ROS wrappers for interacting with the AUVSI interop server using a ROS network.
 
