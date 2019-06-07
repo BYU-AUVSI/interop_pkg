@@ -36,10 +36,13 @@ install:
   - git clone --quiet --depth 1 https://github.com/BYU-AUVSI/rosplane.git rosplane
   - mv rosplane/rosplane_msgs .
   - rm -rf rosplane # remove unused rosplane stuff
-  - ls
+  # setup AUVSI's interop server
+  - cd ~
+  - git clone --quiet --depth 1 https://github.com/auvsi-suas/interop.git interop_server
+  - cd interop_server/server
+  - ./build.sh
 script:
-  - source /opt/ros/$ROS_DISTRO/setup.bash
+  - source /opt/ros/kinetic/setup.bash
   - cd ~/catkin_ws
   - catkin_make
   - source devel/setup.bash
-  - ./test/test.sh

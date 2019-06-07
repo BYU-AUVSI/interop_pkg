@@ -3,12 +3,12 @@ project(interop_pkg)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
-  rosflight_msgs
+  rosplane_msgs
   std_msgs
   uav_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS rosflight_msgs std_msgs uav_msgs
+  CATKIN_DEPENDS rosplane_msgs std_msgs uav_msgs
 )
 
