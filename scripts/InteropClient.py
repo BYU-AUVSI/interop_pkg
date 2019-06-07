@@ -1,6 +1,5 @@
 #!/usr/bin/python
-import os
-import sys
+import os, sys, time
 import getopt
 import rospy
 import requests
@@ -40,15 +39,8 @@ class InteropClient(object):
         self.R_EARTH = r_earth
 
         # Connect to server
-        rospy.sleep(sleep_sec)
+        time.sleep(sleep_sec)
         self.connect()
-
-        # Setup ROS subscribers and publishers
-        self.listener()
-        # self.listenerThread = threading.Thread(target=self.listener)
-        # self.listenerThread.setDaemon(True)
-        # self.listenerThread.start()
-        # self.talker()
 
     def listener(self):
         print('Listening')
@@ -103,7 +95,7 @@ class InteropClient(object):
         hdg = math.degrees(data.chi % (2 * math.pi))
 
         telemetry = Telemetry(lat, lon, alt, hdg)
-	self.post_telemetry(telemetry)
+        self.post_telemetry(telemetry)
 
     def parse_point(self, json):
         point = Point()
@@ -288,7 +280,7 @@ class InteropClient(object):
     def post_telemetry(self, telemetry):
         params = {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude': telemetry.altitude,
                         'heading': telemetry.heading}
-	    json_params = json.dumps(params)
+        json_params = json.dumps(params)
         headers = {'Cookie': self.GLOBALCOOKIE, "Content-Type":"application/json"}
         response = self.send_request('POST', '/api/telemetry', json_params, headers)
 
