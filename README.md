@@ -59,6 +59,14 @@ client.launch # launch the interop client on your machine
 full.launch # launch both the server and client on your machine
 ```
 
-# Missions:
+## Missions
 
 `elberta_test_fixture.yaml` Specifies an entire test mission in Elberta, UT. Place this file in AUVSI's server/fixtures/test_fixture.yaml (ie: replace the current test_fixture.yaml with this file renamed to test_fixture.yaml). Then build the server (with `./build.sh`) and run it. When you this interop package requests a mission with id = 1, it should return a mission in Elberta.
+
+## Dependencies
+
+This package relies on a few other BYU-Auvsi packages. Changes to them could have effects here:
+
+- [BYU-AUVSI/rosplane/rosplane_msgs](https://github.com/BYU-AUVSI/rosplane/tree/RC1.0/rosplane_msgs)
+
+- [BYU-AUVSI/uav_msgs](https://github.com/BYU-AUVSI/uav_msgs)

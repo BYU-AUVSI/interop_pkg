@@ -1,0 +1,45 @@
+sudo: required
+dist: xenial
+language: generic
+services:
+  - docker
+env:
+  global:
+    - ROS_CI_DESKTOP="`lsb_release -cs`"  # e.g. [precise|trusty|...]
+    - CI_SOURCE_PATH=$(pwd)
+# install ROS
+before_install:
+  - sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
+  - sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+  - sudo apt-get update -qq
+  - sudo apt-get install dpkg
+  - sudo apt-get install -y ros-kinetic-catkin ros-kinetic-ros-base ros-kinetic-std-msgs ros-kinetic-sensor-msgs ros-kinetic-opencv3 ros-kinetic-cv-bridge
+  - source /opt/ros/kinetic/setup.bash
+  # Prepare rosdep to install dependencies.
+  - sudo rosdep init
+  - rosdep update
+# Create a catkin workspace with the package under integration.
+install:
+  - mkdir -p ~/catkin_ws/src
+  - cd ~/catkin_ws/src
+  - catkin_init_workspace
+  # Create the devel/setup.bash (run catkin_make with an empty workspace) and
+  # source it to set the path variables.
+  - cd ~/catkin_ws
+  - catkin_make
+  - source devel/setup.bash
+  # Add the package under integration to the workspace using a symlink.
+  - cd ~/catkin_ws/src
+  - ln -s $CI_SOURCE_PATH .
+  # add our dependencies
+  - git clone --quiet --depth 1 https://github.com/BYU-AUVSI/uav_msgs.git uav_msgs
+  - git clone --quiet --depth 1 https://github.com/BYU-AUVSI/rosplane.git rosplane
+  - mv rosplane/rosplane_msgs .
+  - rm -rf rosplane # remove unused rosplane stuff
+  - ls
+script:
+  - source /opt/ros/$ROS_DISTRO/setup.bash
+  - cd ~/catkin_ws
+  - catkin_make
+  - source devel/setup.bash
+  - ./test/test.sh
