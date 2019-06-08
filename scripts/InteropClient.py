@@ -41,6 +41,7 @@ class InteropClient(object):
         # Connect to server
         time.sleep(sleep_sec)
         self.connect()
+        self.listener()
 
     def listener(self):
         print('Listening')
