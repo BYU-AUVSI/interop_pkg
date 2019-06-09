@@ -14,7 +14,7 @@ before_install:
   - sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
   - sudo apt-get update -qq
   - sudo apt-get install dpkg
-  - sudo apt-get install -qq -y ros-kinetic-catkin ros-kinetic-ros-base ros-kinetic-std-msgs ros-kinetic-sensor-msgs ros-kinetic-opencv3 ros-kinetic-cv-bridge python-pip
+  - sudo apt-get install -qq -y --allow-unauthenticated ros-kinetic-catkin ros-kinetic-ros-base ros-kinetic-std-msgs ros-kinetic-sensor-msgs ros-kinetic-opencv3 ros-kinetic-cv-bridge python-pip
   - source /opt/ros/kinetic/setup.bash
   # Prepare rosdep to install dependencies.
   - sudo rosdep init

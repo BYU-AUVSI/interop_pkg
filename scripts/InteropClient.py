@@ -41,7 +41,6 @@ class InteropClient(object):
         # Connect to server
         time.sleep(sleep_sec)
         self.connect()
-        self.listener()
 
     def listener(self):
         print('Listening')
@@ -363,6 +362,7 @@ if __name__ == '__main__':
     # initialize client
     client = InteropClient(server_ip, server_port, username, password, mission_id, retry_max, 
                 init_lat, init_lon, r_earth, sleep_sec)
+    client.listener()
 
     # keep the program running until manually killed
     while not rospy.is_shutdown():
