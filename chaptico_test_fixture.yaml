@@ -96,16 +96,16 @@
 
 # search grid waypoints
 - model: auvsi_suas.waypoint
-  pk: 17
+  pk: 15
   fields: {order: 1, position: 17}
 - model: auvsi_suas.waypoint
-  pk: 18
+  pk: 16
   fields: {order: 2, position: 18}
 - model: auvsi_suas.waypoint
-  pk: 19
+  pk: 17
   fields: {order: 3, position: 19}
 - model: auvsi_suas.waypoint
-  pk: 20
+  pk: 18
   fields: {order: 4, position: 20}
 
 # fly zone aerial positions
@@ -156,16 +156,16 @@
 
 # search grid positions
 - model: auvsi_suas.aerialposition
-  pk: 17
+  pk: 15
   fields: {altitude_msl: 100.0, gps_position: 17}
 - model: auvsi_suas.aerialposition
-  pk: 18
+  pk: 16
   fields: {altitude_msl: 100.0, gps_position: 18}
 - model: auvsi_suas.aerialposition
-  pk: 19
+  pk: 17
   fields: {altitude_msl: 100.0, gps_position: 19}
 - model: auvsi_suas.aerialposition
-  pk: 20
+  pk: 18
   fields: {altitude_msl: 100.0, gps_position: 20}
 
 # stationary objects
