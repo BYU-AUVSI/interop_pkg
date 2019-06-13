@@ -1,3 +1,5 @@
+#SERVER_IP: 10.10.130.10
+#SERVER_PORT: 80
 SERVER_IP: localhost
 SERVER_PORT: 8000
 sleep_sec: 1.0 # number of seconds to sleep before attempting to connect to the server
@@ -6,6 +8,8 @@ MAX_RETRIES: 10 # number of times client will try to connect to server before gi
 mission_id: 1
 username: testuser
 password: testpass
-init_lat: 38.144692
-init_lon: -76.428007
+#username: byu
+#password: '2011832891'
+init_lat: 38.379318
+init_lon: -76.805290
 r_earth: 6370027
