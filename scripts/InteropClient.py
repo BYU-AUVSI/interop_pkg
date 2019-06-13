@@ -243,7 +243,6 @@ class InteropClient(object):
                 response = self.SESSION.get(self.SERVERURL+resource, headers=headers)
             elif method == 'POST':
                 response = self.SESSION.post(self.SERVERURL+resource, headers=headers, data=params)
-                print("Successfully posted: {}, {}".format(resource,headers))
             elif method == 'PUT':
                 response = self.SESSION.put(self.SERVERURL+resource, headers=headers, data=params)
             elif method == 'DELETE':
