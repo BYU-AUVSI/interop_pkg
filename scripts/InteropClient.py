@@ -285,10 +285,8 @@ class InteropClient(object):
         response = self.send_request('POST', '/api/telemetry', json_params, headers)
 
     def post_target(self, target):
-        params = {'mission': self.MISSION_ID, 'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
-                  'orientation': target.orientation, 'shape': target.shape, 'shapeColor': target.background_color,
-                  'alphanumeric': target.alphanumeric, 'alphanumericColor': target.alphanumeric_color,
-                  'description': target.description, 'autonomous':target.autonomous}
+        params = target.dict_out()
+        params['mission'] = self.MISSION_ID
 
         json_params = json.dumps(params)
 
