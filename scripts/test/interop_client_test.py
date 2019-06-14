@@ -16,7 +16,7 @@ class TestServerConnection(unittest.TestCase):
 class TestPostTarget(unittest.TestCase):
     def testManual(self):
         # see how it works with all lower values
-        manualTarget = Target('standard', 39.1234, -111.5555, 'ne', 'circle','purple', 'A', 'black', None, False)
+        manualTarget = Target('STANDARD', 39.1234, -111.5555, 'NE', 'CIRCLE','BLUE', 'C', 'BLACK', None, False)
         
         client = InteropClient('localhost', sleep_sec=0.0)
         self.assertIsNotNone(client)
