@@ -4,7 +4,6 @@
 class PostFailedException(Exception):
     pass
 
-
 class Telemetry(object):
     def __init__(self, latitude, longitude, altitude, heading):
         self.latitude = latitude
@@ -25,16 +24,16 @@ class Target(object):
     id = -1
     user = -1
 
-    def __init__(self, type, latitude, longitude, orientation, shape, background_color, alphanumeric,
+    def __init__(self, type_s, latitude, longitude, orientation, shape, background_color, alphanumeric,
                  alphanumeric_color, description, autonomous):
-        self.type = type
+        self.type = type_s
         self.latitude = latitude
         self.longitude = longitude
         self.orientation = orientation
         self.shape = shape
-        self.background_color = background_color
+        self.shapeColor = background_color
         self.alphanumeric = alphanumeric
-        self.alphanumeric_color = alphanumeric_color
+        self.alphanumericColor = alphanumeric_color
         self.description = description
         self.autonomous = autonomous
 
@@ -42,3 +41,17 @@ class Target(object):
         # Shape Types: circle, semicircle, quarter_circle, triangle, square, rectangle, trapezoid, pentagon, hexagon,
         #  heptagon, octagon, star, cross
         # Color Types: white, black, gray, red, blue, green, yellow, purple, brown, orange
+
+    def dict_out(self):
+        ret = {}
+        ret['type'] = self.type
+        ret['autonomous'] = self.autonomous
+
+        #everything else is optional depending on what type we're sending (emergent or standard)
+        fields = ['latitude', 'longitude', 'orientation', 'shape', 'shapeColor', 'alphanumeric', 'alphanumericColor', 'description']
+        for field in fields:
+            val = getattr(self, field)
+            if val is not None and val and val != "":
+                ret[field] = val
+
+        return ret

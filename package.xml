@@ -8,7 +8,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   
   <depend>rospy</depend>
-  <depend>rosflight_msgs</depend>
+  <depend>rosplane_msgs</depend>
   <depend>std_msgs</depend>
   <depend>uav_msgs</depend>
 

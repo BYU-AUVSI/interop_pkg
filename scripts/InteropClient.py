@@ -1,6 +1,5 @@
 #!/usr/bin/python
-import os
-import sys
+import os, sys, time
 import getopt
 import rospy
 import requests
@@ -18,32 +17,38 @@ from rosplane_msgs.msg import State
 from uav_msgs.srv import SubmitImage, SubmitImageResponse
 from uav_msgs.srv import GetMissionWithId
 from uav_msgs.msg import *
-from ClientObjects import PostFailedException, Telemetry, Target
+from ClientObjects import PostFailedException, Telemetry, Target 
 
 class InteropClient(object):
-    def __init__(self, server_ip, server_port, server_url, retry_max, 
-                    init_lat, init_lon, r_earth, sleep_sec):
+
+    def __init__(self, server_ip, server_port=8000, username='testuser', password='testpass', mission_id=1, retry_max=10, 
+                    init_lat=38.144692, init_lon=-76.428007, r_earth=6370027, sleep_sec=4.0):
         self.SERVERADDR = server_ip
         self.SERVERPORT = server_port
-        self.SERVERURL = server_url
+        self.SERVERURL = 'http://{}:{}'.format(server_ip, server_port)
         self.GLOBALCOOKIE = None
         self.CONNECTED = False
         self.RETRY_MAX = retry_max
         self.SESSION = requests.Session()
+        self.USERNAME = username
+        self.PASSWORD = password
+        self.MISSION_ID = mission_id
         self.connectedLock = threading.Lock()
         # For NED to LatLon conversions
         self.HOME = [init_lat, init_lon]
         self.R_EARTH = r_earth
 
         # Connect to server
-        rospy.sleep(sleep_sec)
+        time.sleep(sleep_sec)
         self.connect()
 
-        # Setup ROS subscribers and publishers
-        self.listenerThread = threading.Thread(target=self.listener)
-        self.listenerThread.setDaemon(True)
-        self.listenerThread.start()
-        self.talker()
+    def listener(self):
+        print('Listening')
+        rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
+        rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
+        s = rospy.Service("get_mission_with_id", GetMissionWithId, self.get_mission_with_id_handler)
+        #  processing
+        rospy.spin()
 
     def target_submission_handler(self, data):
         # Setup target model and pass to post_target() and post_target_image()
@@ -90,130 +95,96 @@ class InteropClient(object):
         hdg = math.degrees(data.chi % (2 * math.pi))
 
         telemetry = Telemetry(lat, lon, alt, hdg)
-
-        sendTelemThread = threading.Thread(target=self.post_telemetry, args=(telemetry,))
-        sendTelemThread.setDaemon(True)
-        sendTelemThread.start()
-
-    def nedToLatLon(self, ned):
-        lat = self.HOME[0] + math.degrees(math.asin(ned[0]/self.R_EARTH))
-        lon = self.HOME[1] + math.degrees(math.asin(ned[1]/(math.cos(math.radians(self.HOME[0]))*self.R_EARTH)))
-        return (lat, lon)
-
-    def listener(self):
-        print('Listening')
-        rospy.Subscriber("/state", State, self.state_callback) # state info from ros_plane
-        rospy.Service("/imaging/target", SubmitImage, self.target_submission_handler) # images + metadata from imaging gui
-        #  processing
-        rospy.spin()
+        self.post_telemetry(telemetry)
 
     def parse_point(self, json):
         point = Point()
-        point.latitude = json['latitude']
+        point.latitude  = json['latitude']
         point.longitude = json['longitude']
 
         # Point may optionally have an altitude
-        if 'altitude_msl' in json.keys():
-            point.altitude = self.feetToMeters(json['altitude_msl'])
+        if 'altitude' in json.keys():
+            point.altitude = self.feetToMeters(json['altitude'])
 
         return point
 
-    def parse_ordered_point(self, json):
+    def parse_ordered_point(self, json, index):
         ordered_point = OrderedPoint()
         ordered_point.point = self.parse_point(json)
-        ordered_point.ordinal = json['order']
+        ordered_point.ordinal = index
         return ordered_point
 
     def get_mission_with_id_handler(self, req):
-        mission_str = self.get_missions()
-        obstacles_str = self.get_obstacles()
-        json_missions = json.loads(mission_str)
-
-        # Handle multiple missions for testing purposes
-        # Just take the first mission that is active
-        json_mission = None
-        for mission in json_missions:
-            if mission["active"]:
-                json_mission = mission
-
-        print(json_mission)
-        json_obstacles = json.loads(obstacles_str)
 
         mission_type = req.mission_type
-        mission = JudgeMission()
+        headers = {'Cookie': self.GLOBALCOOKIE}
+        endpoint = "/api/missions/{}".format(self.MISSION_ID)
+        response = self.send_request('GET', endpoint, None, headers)
+        json_mission = json.loads(response.text)
 
+        mission = JudgeMission()
         # Set mission type on response
         mission.mission_type = mission_type
 
         # Set boundaries (competition boundaries) on response
-        for json_point in json_mission['fly_zones'][0]['boundary_pts']:
-            ordered = self.parse_ordered_point(json_point)
+        i = 0
+        for json_point in json_mission['flyZones'][0]['boundaryPoints']:
+            ordered = self.parse_ordered_point(json_point, i)
             mission.boundaries.append(ordered)
+            i = i + 1
 
         # Set stationary obstacles on response
-        for json_obstacle in json_obstacles['stationary_obstacles']:
+        for json_obstacle in json_mission['stationaryObstacles']:
             point = self.parse_point(json_obstacle)
 
             obstacle = StationaryObstacle()
             obstacle.point = point
-            obstacle.cylinder_height = self.feetToMeters(json_obstacle['cylinder_height'])
-            obstacle.cylinder_radius = self.feetToMeters(json_obstacle['cylinder_radius'])
+            obstacle.cylinder_height = self.feetToMeters(json_obstacle['height'])
+            obstacle.cylinder_radius = self.feetToMeters(json_obstacle['radius'])
 
             mission.stationary_obstacles.append(obstacle)
 
-        # Set waypoints based on mission type
-        if(mission_type == JudgeMission.MISSION_TYPE_WAYPOINT):
 
-            # Use "mission_waypoints" from judge-provided mission
-            for mission_waypoint in json_mission['mission_waypoints']:
-                waypoint = self.parse_ordered_point(mission_waypoint)
+        if mission_type == JudgeMission.MISSION_TYPE_WAYPOINT:
+            i = 0
+            for mission_waypoint in json_mission['waypoints']:
+                waypoint = self.parse_ordered_point(mission_waypoint, i)
                 mission.waypoints.append(waypoint)
+                i = i + 1
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_DROP):
-
+        elif mission_type == JudgeMission.MISSION_TYPE_DROP:
             # Use "air_drop_pos" from judge-provided mission
-            point = self.parse_point(json_mission['air_drop_pos'])
-            point.altitude = self.feetToMeters(json_mission['fly_zones'][0]['altitude_msl_min']) # So we know later a baseline of how low we can fly
+            point = self.parse_point(json_mission['airDropPos'])
             ordered = OrderedPoint()
             ordered.point = point
             ordered.ordinal = 1
             mission.waypoints.append(ordered)
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_SEARCH):
+        elif mission_type == JudgeMission.MISSION_TYPE_SEARCH:
             # Use search grid boundaries as waypoints. Caller will generate actual search path within this.
-            for search_grid_point in json_mission['search_grid_points']:
-                point = self.parse_ordered_point(search_grid_point)
+            i = 0
+            for search_grid_point in json_mission['searchGridPoints']:
+                point = self.parse_ordered_point(search_grid_point, i)
                 mission.waypoints.append(point)
+                i = i + 1
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_OFFAXIS):
+        elif mission_type == JudgeMission.MISSION_TYPE_OFFAXIS:
             # Get off axis position
-            point = self.parse_point(json_mission['off_axis_odlc_pos'])
+            point = self.parse_point(json_mission['offAxisOdlcPos'])
             ordered = OrderedPoint()
             ordered.point = point
             ordered.ordinal = 1
             mission.waypoints.append(ordered)
 
-        elif(mission_type == JudgeMission.MISSION_TYPE_EMERGENT):
+        elif mission_type == JudgeMission.MISSION_TYPE_EMERGENT:
             # Get emergent position
-            point = self.parse_point(json_mission["emergent_last_known_pos"])
+            point = self.parse_point(json_mission["emergentLastKnownPos"])
             ordered = OrderedPoint()
             ordered.point = point
             ordered.ordinal = 1
             mission.waypoints.append(ordered)
 
         return mission
-
-    def talker(self):
-        print('Talking')
-
-        # Init the GetMission service handler
-        s = rospy.Service("get_mission_with_id", GetMissionWithId, self.get_mission_with_id_handler)
-
-        rate = rospy.Rate(1) # not sure if we need this. i think this is from when we tried to publish moving obstacle info every second
-
-        string = self.get_obstacles()
-        json_obstacles = json.loads(string)
-        print("Got obstacles!")
 
     def is_connected(self):
         # global CONNECTED
@@ -232,8 +203,7 @@ class InteropClient(object):
         self.connectedLock.release()
 
     def connect(self):
-        # params = {"username": "testuser", "password": "testpass"}
-        params = {"username": "testuser", "password": "testpass"}
+        params = {"username": self.USERNAME, "password": self.PASSWORD}
         retry_count = 0
         while not self.is_connected() and retry_count < self.RETRY_MAX:
             retry_count+=1
@@ -273,7 +243,6 @@ class InteropClient(object):
                 response = self.SESSION.get(self.SERVERURL+resource, headers=headers)
             elif method == 'POST':
                 response = self.SESSION.post(self.SERVERURL+resource, headers=headers, data=params)
-                print("Successfully posted: {}, {}".format(resource,headers))
             elif method == 'PUT':
                 response = self.SESSION.put(self.SERVERURL+resource, headers=headers, data=params)
             elif method == 'DELETE':
@@ -307,26 +276,16 @@ class InteropClient(object):
 
         return response
 
-    def get_obstacles(self):
-        response = self.send_request('GET', '/api/obstacles', None, headers={'Cookie': self.GLOBALCOOKIE})
-        return response.text
-
-    def get_missions(self):
-        response = self.send_request('GET', '/api/missions', None, headers={'Cookie': self.GLOBALCOOKIE})
-        return response.text
-
     def post_telemetry(self, telemetry):
-        params = urllib.urlencode(
-                    {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude_msl': telemetry.altitude,
-                        'uas_heading': telemetry.heading})
-        headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "text/plain", 'Cookie': self.GLOBALCOOKIE}
-        response = self.send_request('POST', '/api/telemetry', params, headers)
+        params = {'latitude': telemetry.latitude, 'longitude': telemetry.longitude, 'altitude': telemetry.altitude,
+                        'heading': telemetry.heading}
+        json_params = json.dumps(params)
+        headers = {'Cookie': self.GLOBALCOOKIE, "Content-Type":"application/json"}
+        response = self.send_request('POST', '/api/telemetry', json_params, headers)
 
     def post_target(self, target):
-        params = {'type': target.type, 'latitude': target.latitude, 'longitude': target.longitude,
-                  'orientation': target.orientation, 'shape': target.shape, 'background_color': target.background_color,
-                  'alphanumeric': target.alphanumeric, 'alphanumeric_color': target.alphanumeric_color,
-                  'description': target.description, 'autonomous':target.autonomous}
+        params = target.dict_out()
+        params['mission'] = self.MISSION_ID
 
         json_params = json.dumps(params)
 
@@ -334,7 +293,7 @@ class InteropClient(object):
         response = self.send_request('POST', '/api/odlcs', json_params, headers)
 
         for retry in range(self.RETRY_MAX):
-            if response.status_code == 201:
+            if response.status_code == 200:
                 print("Target was submitted successfully on try {}!".format(retry + 1))
                 return response.json()['id']
             else:
@@ -366,29 +325,41 @@ class InteropClient(object):
         print("Failed to post target image with id: {}".format(target_id))
         raise PostFailedException()
 
+    #####################
+    ## Utility methods ##
+    #####################
+
     def feetToMeters(self, feet):
         return feet * 0.3048
 
     def metersToFeet(self, meters):
         return meters * 3.28084
 
+    def nedToLatLon(self, ned):
+        lat = self.HOME[0] + math.degrees(math.asin(ned[0]/self.R_EARTH))
+        lon = self.HOME[1] + math.degrees(math.asin(ned[1]/(math.cos(math.radians(self.HOME[0]))*self.R_EARTH)))
+        return (lat, lon)
+
 if __name__ == '__main__':
     # initialize node
     rospy.init_node('interop_client', anonymous=True)
 
     # load parameters
-    server_ip = rospy.get_param("~SERVER_IP")
+    server_ip   = rospy.get_param("~SERVER_IP")
     server_port = rospy.get_param("~SERVER_PORT")
-    server_url = "http://" + server_ip + ":" + str(server_port)
-    retry_max = rospy.get_param("~MAX_RETRIES")
-    init_lat = rospy.get_param("~init_lat")
-    init_lon = rospy.get_param("~init_lon")
-    r_earth = rospy.get_param("~r_earth")
-    sleep_sec = rospy.get_param("~sleep_sec")
+    mission_id  = rospy.get_param("~mission_id")
+    username    = rospy.get_param("~username", "testuser")
+    password    = rospy.get_param("~password", "testpass")
+    retry_max   = rospy.get_param("~MAX_RETRIES")
+    init_lat    = rospy.get_param("~init_lat")
+    init_lon    = rospy.get_param("~init_lon")
+    r_earth     = rospy.get_param("~r_earth")
+    sleep_sec   = rospy.get_param("~sleep_sec")
 
     # initialize client
-    client = InteropClient(server_ip, server_port, server_url, retry_max, 
+    client = InteropClient(server_ip, server_port, username, password, mission_id, retry_max, 
                 init_lat, init_lon, r_earth, sleep_sec)
+    client.listener()
 
     # keep the program running until manually killed
     while not rospy.is_shutdown():

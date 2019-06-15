@@ -1,0 +1,466 @@
+- model: auth.user
+  pk: 1
+  fields:
+    username: testadmin
+    first_name: test
+    last_name: admin
+    email: testadmin@test.com
+    password: pbkdf2_sha256$20000$b1wK6sC01uOZ$OXpjiHaCKqJJgvxtq4Ds1rZJPI2iOEeea3lAZmyBJLI=
+    date_joined: "2015-05-25T17:01:28.183Z"
+    is_active: true
+    is_superuser: true
+    is_staff: true
+    last_login: null
+    groups: []
+    user_permissions: []
+- model: auth.user
+  pk: 2
+  fields:
+    date_joined: 2015-07-31 05:13:16.704351+00:00
+    email: ''
+    first_name: 'Test Team'
+    groups: []
+    is_active: true
+    is_staff: false
+    is_superuser: false
+    last_login: 2015-07-31 05:13:44.875561+00:00
+    last_name: 'Test University'
+    password: pbkdf2_sha256$20000$6hErQuM8Gxni$zLDQHSFgpGUiPMfQqGJjIyp9Q1VcHzIhM7Z3P81SwaY=
+    user_permissions: []
+    username: testuser
+
+- model: auvsi_suas.odlc
+  pk: 1
+  fields:
+      creation_time: 2015-07-31 05:13:44.875561+00:00
+      description: 'SUAS Judge'
+      last_modified_time: 2015-07-31 05:13:44.875561+00:00
+      location: 1
+      odlc_type: 4
+      thumbnail_approved: True
+      user: 2
+      mission: 1
+
+- model: auvsi_suas.flyzone
+  pk: 1
+  fields:
+    altitude_msl_max: 750
+    altitude_msl_min: 0
+    boundary_pts: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] # waypoints
+
+# waypoints
+- model: auvsi_suas.waypoint
+  pk: 1
+  fields: {order: 1, position: 14}
+- model: auvsi_suas.waypoint
+  pk: 2
+  fields: {order: 2, position: 15}
+- model: auvsi_suas.waypoint
+  pk: 3
+  fields: {order: 3, position: 16}
+- model: auvsi_suas.waypoint
+  pk: 4
+  fields: {order: 4, position: 17}
+- model: auvsi_suas.waypoint
+  pk: 5
+  fields: {order: 5, position: 18}
+- model: auvsi_suas.waypoint
+  pk: 6
+  fields: {order: 6, position: 19}
+- model: auvsi_suas.waypoint
+  pk: 7
+  fields: {order: 7, position: 20}
+- model: auvsi_suas.waypoint
+  pk: 8
+  fields: {order: 8, position: 21}
+- model: auvsi_suas.waypoint
+  pk: 9
+  fields: {order: 9, position: 22}
+- model: auvsi_suas.waypoint
+  pk: 10
+  fields: {order: 10, position: 23}
+- model: auvsi_suas.waypoint
+  pk: 11
+  fields: {order: 11, position: 24}
+
+# fly zone boundary waypoints:
+- model: auvsi_suas.waypoint
+  pk: 12
+  fields: {order: 1, position: 1}
+- model: auvsi_suas.waypoint
+  pk: 13
+  fields: {order: 2, position: 2}
+- model: auvsi_suas.waypoint
+  pk: 14
+  fields: {order: 3, position: 3}
+- model: auvsi_suas.waypoint
+  pk: 15
+  fields: {order: 4, position: 4}
+- model: auvsi_suas.waypoint
+  pk: 16
+  fields: {order: 5, position: 5}
+- model: auvsi_suas.waypoint
+  pk: 17
+  fields: {order: 6, position: 6}
+- model: auvsi_suas.waypoint
+  pk: 18
+  fields: {order: 7, position: 7}
+- model: auvsi_suas.waypoint
+  pk: 19
+  fields: {order: 8, position: 8}
+- model: auvsi_suas.waypoint
+  pk: 20
+  fields: {order: 9, position: 9}
+- model: auvsi_suas.waypoint
+  pk: 21
+  fields: {order: 10, position: 10}
+- model: auvsi_suas.waypoint
+  pk: 22
+  fields: {order: 11, position: 11}
+- model: auvsi_suas.waypoint
+  pk: 23
+  fields: {order: 12, position: 12}
+- model: auvsi_suas.waypoint
+  pk: 24
+  fields: {order: 13, position: 13}
+
+# search grid waypoints
+- model: auvsi_suas.waypoint
+  pk: 25
+  fields: {order: 1, position: 25}
+- model: auvsi_suas.waypoint
+  pk: 26
+  fields: {order: 2, position: 26}
+- model: auvsi_suas.waypoint
+  pk: 27
+  fields: {order: 3, position: 27}
+- model: auvsi_suas.waypoint
+  pk: 28
+  fields: {order: 4, position: 28}
+- model: auvsi_suas.waypoint
+  pk: 29
+  fields: {order: 5, position: 29}
+
+# fly zone aerial positions
+- model: auvsi_suas.aerialposition
+  pk: 1
+  fields: {altitude_msl: 200.0, gps_position: 1}
+- model: auvsi_suas.aerialposition
+  pk: 2
+  fields: {altitude_msl: 200.0, gps_position: 2}
+- model: auvsi_suas.aerialposition
+  pk: 3
+  fields: {altitude_msl: 200.0, gps_position: 3}
+- model: auvsi_suas.aerialposition
+  pk: 4
+  fields: {altitude_msl: 200.0, gps_position: 4}
+- model: auvsi_suas.aerialposition
+  pk: 5
+  fields: {altitude_msl: 200.0, gps_position: 5}
+- model: auvsi_suas.aerialposition
+  pk: 6
+  fields: {altitude_msl: 200.0, gps_position: 6}
+- model: auvsi_suas.aerialposition
+  pk: 7
+  fields: {altitude_msl: 200.0, gps_position: 7}
+- model: auvsi_suas.aerialposition
+  pk: 8
+  fields: {altitude_msl: 200.0, gps_position: 8}
+- model: auvsi_suas.aerialposition
+  pk: 9
+  fields: {altitude_msl: 200.0, gps_position: 9}
+- model: auvsi_suas.aerialposition
+  pk: 10
+  fields: {altitude_msl: 200.0, gps_position: 10}
+- model: auvsi_suas.aerialposition
+  pk: 11
+  fields: {altitude_msl: 200.0, gps_position: 11}
+- model: auvsi_suas.aerialposition
+  pk: 12
+  fields: {altitude_msl: 200.0, gps_position: 12}
+- model: auvsi_suas.aerialposition
+  pk: 13
+  fields: {altitude_msl: 200.0, gps_position: 13}
+# waypoints aerial position:
+- model: auvsi_suas.aerialposition
+  pk: 14
+  fields: {altitude_msl: 200.0, gps_position: 14}
+- model: auvsi_suas.aerialposition
+  pk: 15
+  fields: {altitude_msl: 180.0, gps_position: 15}
+- model: auvsi_suas.aerialposition
+  pk: 16
+  fields: {altitude_msl: 220.0, gps_position: 16}
+- model: auvsi_suas.aerialposition
+  pk: 17
+  fields: {altitude_msl: 250.0, gps_position: 17}
+- model: auvsi_suas.aerialposition
+  pk: 18
+  fields: {altitude_msl: 200.0, gps_position: 18}
+- model: auvsi_suas.aerialposition
+  pk: 19
+  fields: {altitude_msl: 270.0, gps_position: 19}
+- model: auvsi_suas.aerialposition
+  pk: 20
+  fields: {altitude_msl: 270.0, gps_position: 20}
+- model: auvsi_suas.aerialposition
+  pk: 21
+  fields: {altitude_msl: 270.0, gps_position: 21}
+- model: auvsi_suas.aerialposition
+  pk: 22
+  fields: {altitude_msl: 250.0, gps_position: 22}
+- model: auvsi_suas.aerialposition
+  pk: 23
+  fields: {altitude_msl: 270.0, gps_position: 23}
+- model: auvsi_suas.aerialposition
+  pk: 24
+  fields: {altitude_msl: 270.0, gps_position: 24}
+# search grid positions
+- model: auvsi_suas.aerialposition
+  pk: 25
+  fields: {altitude_msl: 100.0, gps_position: 44}
+- model: auvsi_suas.aerialposition
+  pk: 26
+  fields: {altitude_msl: 100.0, gps_position: 45}
+- model: auvsi_suas.aerialposition
+  pk: 27
+  fields: {altitude_msl: 100.0, gps_position: 46}
+- model: auvsi_suas.aerialposition
+  pk: 28
+  fields: {altitude_msl: 100.0, gps_position: 47}
+- model: auvsi_suas.aerialposition
+  pk: 29
+  fields: {altitude_msl: 100.0, gps_position: 48}
+
+# stationary objects
+- model: auvsi_suas.stationaryobstacle
+  pk: 1
+  fields: {cylinder_height: 200.0, cylinder_radius: 50.0, gps_position: 25}
+- model: auvsi_suas.stationaryobstacle
+  pk: 2
+  fields: {cylinder_height: 300.0, cylinder_radius: 50.0, gps_position: 26}
+- model: auvsi_suas.stationaryobstacle
+  pk: 3
+  fields: {cylinder_height: 150.0, cylinder_radius: 150.0, gps_position: 27}
+- model: auvsi_suas.stationaryobstacle
+  pk: 4
+  fields: {cylinder_height: 400.0, cylinder_radius: 100.0, gps_position: 28}
+- model: auvsi_suas.stationaryobstacle
+  pk: 5
+  fields: {cylinder_height: 300.0, cylinder_radius: 30.0, gps_position: 29}
+- model: auvsi_suas.stationaryobstacle
+  pk: 6
+  fields: {cylinder_height: 200.0, cylinder_radius: 80.0, gps_position: 30}
+- model: auvsi_suas.stationaryobstacle
+  pk: 7
+  fields: {cylinder_height: 320.0, cylinder_radius: 50.0, gps_position: 31}
+- model: auvsi_suas.stationaryobstacle
+  pk: 8
+  fields: {cylinder_height: 330.0, cylinder_radius: 130.0, gps_position: 32}
+- model: auvsi_suas.stationaryobstacle
+  pk: 9
+  fields: {cylinder_height: 225.0, cylinder_radius: 75.0, gps_position: 33}
+- model: auvsi_suas.stationaryobstacle
+  pk: 10
+  fields: {cylinder_height: 150.0, cylinder_radius: 150.0, gps_position: 34}
+- model: auvsi_suas.stationaryobstacle
+  pk: 11
+  fields: {cylinder_height: 300.0, cylinder_radius: 30.0, gps_position: 35}
+- model: auvsi_suas.stationaryobstacle
+  pk: 12
+  fields: {cylinder_height: 350.0, cylinder_radius: 50.0, gps_position: 36}
+- model: auvsi_suas.stationaryobstacle
+  pk: 13
+  fields: {cylinder_height: 200.0, cylinder_radius: 50.0, gps_position: 37}
+- model: auvsi_suas.stationaryobstacle
+  pk: 14
+  fields: {cylinder_height: 200.0, cylinder_radius: 100.0, gps_position: 38}
+- model: auvsi_suas.stationaryobstacle
+  pk: 15
+  fields: {cylinder_height: 350.0, cylinder_radius: 75.0, gps_position: 39}
+- model: auvsi_suas.stationaryobstacle
+  pk: 16
+  fields: {cylinder_height: 300.0, cylinder_radius: 50.0, gps_position: 40}
+- model: auvsi_suas.stationaryobstacle
+  pk: 17
+  fields: {cylinder_height: 250.0, cylinder_radius: 60.0, gps_position: 41}
+- model: auvsi_suas.stationaryobstacle
+  pk: 18
+  fields: {cylinder_height: 300.0, cylinder_radius: 150.0, gps_position: 42}
+- model: auvsi_suas.stationaryobstacle
+  pk: 19
+  fields: {cylinder_height: 400.0, cylinder_radius: 75.0, gps_position: 43}
+
+# fly zone GPS positions:
+- model: auvsi_suas.gpsposition
+  pk: 1
+  fields: {latitude: 39.979444, longitude: -111.984444}
+- model: auvsi_suas.gpsposition
+  pk: 2
+  fields: {latitude: 39.984444, longitude: -111.991944}
+- model: auvsi_suas.gpsposition
+  pk: 3
+  fields: {latitude: 39.985833, longitude: -111.999444}
+- model: auvsi_suas.gpsposition
+  pk: 4
+  fields: {latitude: 39.982222, longitude: -112.001111}
+- model: auvsi_suas.gpsposition
+  pk: 5
+  fields: {latitude: 39.981111, longitude: -111.9975}
+- model: auvsi_suas.gpsposition
+  pk: 6
+  fields: {latitude: 39.98, longitude: -111.996944}
+- model: auvsi_suas.gpsposition
+  pk: 7
+  fields: {latitude: 39.977222, longitude: -111.998889}
+- model: auvsi_suas.gpsposition
+  pk: 8
+  fields: {latitude: 39.975, longitude: -111.996944}
+- model: auvsi_suas.gpsposition
+  pk: 9
+  fields: {latitude: 39.973056, longitude: -111.993889}
+- model: auvsi_suas.gpsposition
+  pk: 10
+  fields: {latitude: 39.975833, longitude: -111.9925}
+- model: auvsi_suas.gpsposition
+  pk: 11
+  fields: {latitude: 39.976944, longitude: -111.990278}
+- model: auvsi_suas.gpsposition
+  pk: 12
+  fields: {latitude: 39.976667, longitude: -111.987222}
+- model: auvsi_suas.gpsposition
+  pk: 13
+  fields: {latitude: 39.979444, longitude: -111.984444}
+# Waypoint GPS positions
+- model: auvsi_suas.gpsposition
+  pk: 14
+  fields: {latitude: 39.977258, longitude: -111.992606}
+- model: auvsi_suas.gpsposition
+  pk: 15
+  fields: {latitude: 39.979747, longitude: -111.987399}
+- model: auvsi_suas.gpsposition
+  pk: 16
+  fields: {latitude: 39.983299, longitude: -111.999150}
+- model: auvsi_suas.gpsposition
+  pk: 17
+  fields: {latitude: 39.984218, longitude: -111.993367}
+- model: auvsi_suas.gpsposition
+  pk: 18
+  fields: {latitude: 39.981117, longitude: -111.990054}
+- model: auvsi_suas.gpsposition
+  pk: 19
+  fields: {latitude: 39.976845, longitude: -111.995236}
+- model: auvsi_suas.gpsposition
+  pk: 20
+  fields: {latitude: 39.977556, longitude: -111.997197}
+- model: auvsi_suas.gpsposition
+  pk: 21
+  fields: {latitude: 39.982403, longitude: -111.992512}
+- model: auvsi_suas.gpsposition
+  pk: 22
+  fields: {latitude: 39.983858, longitude: -111.996677}
+- model: auvsi_suas.gpsposition
+  pk: 23
+  fields: {latitude: 39.985134, longitude: -111.997839}
+- model: auvsi_suas.gpsposition
+  pk: 24
+  fields: {latitude: 39.982988, longitude: -111.997598}
+  # stationary obstacles gps positions
+- model: auvsi_suas.gpsposition
+  pk: 25
+  fields: {latitude: 39.981523, longitude: -111.994481}
+- model: auvsi_suas.gpsposition
+  pk: 26
+  fields: {latitude: 39.977520, longitude: -111.993484}
+- model: auvsi_suas.gpsposition
+  pk: 27
+  fields: {latitude: 39.975663, longitude: -111.994751}
+- model: auvsi_suas.gpsposition
+  pk: 28
+  fields: {latitude: 39.980500, longitude: -111.992714}
+- model: auvsi_suas.gpsposition
+  pk: 29
+  fields: {latitude: 39.981110, longitude: -111.988654}
+- model: auvsi_suas.gpsposition
+  pk: 30
+  fields: {latitude: 39.982028, longitude: -111.991577}
+- model: auvsi_suas.gpsposition
+  pk: 31
+  fields: {latitude: 39.984370, longitude: -111.993548}
+- model: auvsi_suas.gpsposition
+  pk: 32
+  fields: {latitude: 39.980390, longitude: -111.995003}
+- model: auvsi_suas.gpsposition
+  pk: 33
+  fields: {latitude: 39.978777, longitude: -111.996804}
+- model: auvsi_suas.gpsposition
+  pk: 34
+  fields: {latitude: 39.978521, longitude: -111.994369}
+- model: auvsi_suas.gpsposition
+  pk: 35
+  fields: {latitude: 39.983113, longitude: -111.995318}
+- model: auvsi_suas.gpsposition
+  pk: 36
+  fields: {latitude: 39.984189, longitude: -111.996873}
+- model: auvsi_suas.gpsposition
+  pk: 37
+  fields: {latitude: 39.983190, longitude: -111.999442}
+- model: auvsi_suas.gpsposition
+  pk: 38
+  fields: {latitude: 39.976961, longitude: -111.996767}
+- model: auvsi_suas.gpsposition
+  pk: 39
+  fields: {latitude: 39.977677, longitude: -111.991424}
+- model: auvsi_suas.gpsposition
+  pk: 40
+  fields: {latitude: 39.978841, longitude: -111.990705}
+- model: auvsi_suas.gpsposition
+  pk: 41
+  fields: {latitude: 39.980227, longitude: -111.989411}
+- model: auvsi_suas.gpsposition
+  pk: 42
+  fields: {latitude: 39.978618, longitude: -111.988175}
+- model: auvsi_suas.gpsposition
+  pk: 43
+  fields: {latitude: 39.979382, longitude: -111.986559}
+# search grid gps positions
+- model: auvsi_suas.gpsposition
+  pk: 44
+  fields: {latitude: 39.979765, longitude: -111.994772}
+- model: auvsi_suas.gpsposition
+  pk: 45
+  fields: {latitude: 39.982142, longitude: -111.997355}
+- model: auvsi_suas.gpsposition
+  pk: 46
+  fields: {latitude: 39.984408, longitude: -111.992594}
+- model: auvsi_suas.gpsposition
+  pk: 47
+  fields: {latitude: 39.981363, longitude: -111.987491}
+- model: auvsi_suas.gpsposition
+  pk: 48
+  fields: {latitude: 39.979462, longitude: -111.990707}
+# off-axis odlc
+- model: auvsi_suas.gpsposition
+  pk: 49
+  fields: {latitude: 39.976203, longitude: -111.990912}
+# air drop pos
+- model: auvsi_suas.gpsposition
+  pk: 50
+  fields: {latitude: 39.981944, longitude: -111.990833}
+#emergent last known
+- model: auvsi_suas.gpsposition
+  pk: 51
+  fields: {latitude: 39.984370, longitude: -111.993548}
+# THE MISSON
+- model: auvsi_suas.missionconfig
+  pk: 1
+  fields:
+    air_drop_pos: 50
+    emergent_last_known_pos: 51
+    fly_zones: [1]
+    home_pos: 1
+    mission_waypoints: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    off_axis_odlc_pos: 49
+    search_grid_points: [25, 26, 27, 28, 29]
+    stationary_obstacles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    odlcs: []
