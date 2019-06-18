@@ -282,6 +282,7 @@ class InteropClient(object):
         json_params = json.dumps(params)
         headers = {'Cookie': self.GLOBALCOOKIE, "Content-Type":"application/json"}
         response = self.send_request('POST', '/api/telemetry', json_params, headers)
+        return response
 
     def post_target(self, target):
         params = target.dict_out()
