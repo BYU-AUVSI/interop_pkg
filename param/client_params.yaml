@@ -10,6 +10,10 @@ username: testuser
 password: testpass
 #username: byu
 #password: '2011832891'
-init_lat: 38.379318
-init_lon: -76.805290
+#Chaptico Park
+#init_lat: 38.379318
+#init_lon: -76.805290
+#Elberta
+init_lat: 39.981945
+init_lon: -111.990832  
 r_earth: 6370027
